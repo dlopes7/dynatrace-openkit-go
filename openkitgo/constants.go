@@ -16,3 +16,10 @@ const (
 	EventTypeIDENTIFY_USER EventType = 60
 	EventTypeOTHER         EventType = -1
 )
+
+const (
+	OPENKIT_VERSION       = "7.0.0000"
+	PROTOCOL_VERSION      = 3
+	PLATFORM_TYPE_OPENKIT = 1
+	AGENT_TECHNOLOGY_TYPE = "okjava"
+)

@@ -9,6 +9,16 @@ type Session interface {
 	// traceWebRequest(string)
 	End()
 	finishSession()
+
+	isBeaconConfigurationSet() bool
+	canSendNewSessionRequest() bool
+	isSessionFinished() bool
+	isDataSendingAllowed() bool
+
+	getBeaconConfiguration() *BeaconConfiguration
+	updateBeaconConfiguration(*BeaconConfiguration)
+
+	sendBeacon() *StatusResponse
 }
 
 type session struct {
@@ -19,7 +29,25 @@ type session struct {
 	logger       *logging.Logger
 
 	openRootActions map[int]Action
-	sessionFinished bool
+
+	sessionFinished           bool
+	beaconConfigurationSet    bool
+	numNewSessionRequestsLeft int
+}
+
+func NewSession(logger *logging.Logger, beaconSender *BeaconSender, beacon *Beacon) Session {
+	s := new(session)
+
+	s.logger = logger
+	s.beaconSender = beaconSender
+	s.beacon = beacon
+	s.openRootActions = make(map[int]Action)
+
+	s.numNewSessionRequestsLeft = 4
+	beaconSender.startSession(s)
+	beacon.startSession()
+
+	return s
 }
 
 func (s *session) enterAction(actionName string) Action {
@@ -33,19 +61,33 @@ func (s *session) finishSession() {
 	s.sessionFinished = true
 }
 
-func NewSession(logger *logging.Logger, beaconSender *BeaconSender, beacon *Beacon) Session {
+func (s *session) isBeaconConfigurationSet() bool {
+	return s.beaconConfigurationSet
+}
 
-	s := &session{
-		logger:          logger,
-		beaconSender:    beaconSender,
-		beacon:          beacon,
-		openRootActions: make(map[int]Action),
-	}
+func (s *session) getBeaconConfiguration() *BeaconConfiguration {
+	return &s.beacon.beaconConfiguration
+}
 
-	beaconSender.startSession(s)
-	beacon.startSession()
+func (s *session) updateBeaconConfiguration(beaconConfiguration *BeaconConfiguration) {
+	s.beacon.beaconConfiguration = *beaconConfiguration
+	s.beaconConfigurationSet = true
+}
 
-	return s
+func (s *session) canSendNewSessionRequest() bool {
+	return s.numNewSessionRequestsLeft > 0
+}
+
+func (s *session) isSessionFinished() bool {
+	return s.sessionFinished
+}
+
+func (s *session) isDataSendingAllowed() bool {
+	return s.isBeaconConfigurationSet() && s.beacon.beaconConfiguration.multiplicity > 0
+}
+
+func (s *session) sendBeacon(httpClient *HttpClient) *StatusResponse {
+	return s.beacon.send(httpClient)
 }
 
 func (s *session) End() {

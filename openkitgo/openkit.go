@@ -2,8 +2,6 @@ package openkitgo
 
 import (
 	"github.com/op/go-logging"
-	"net/http"
-	"time"
 )
 
 type openKitType int
@@ -113,10 +111,9 @@ func (ob *openKitBuilder) WithModelID(modelID string) OpenKitBuilder {
 func (ob *openKitBuilder) Build() OpenKit {
 	// TODO - Set Defaults manually here if they were not set?
 
-	client := &http.Client{
-		Timeout: 30 * time.Second,
-	}
 	c := NewConfiguration(ob.endpointURL, ob.applicationName, ob.applicationID, ob.applicationVersion, ob.deviceID, ob.operatingSystem, ob.manufacturer, ob.modelID)
+	client := NewHttpClient(ob.logger, *c.httpClientConfiguration)
+
 	b := NewBeaconSender(ob.logger, c, client)
 
 	openkit := &openkit{

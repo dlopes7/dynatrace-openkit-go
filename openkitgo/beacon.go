@@ -16,7 +16,7 @@ type BeaconSender struct {
 	context BeaconSenderContext
 }
 
-func NewBeaconSender(logger logging.Logger, config *Configuration, client *http.Client) *BeaconSender {
+func NewBeaconSender(logger logging.Logger, config *Configuration, client *HttpClient) *BeaconSender {
 	b := new(BeaconSender)
 	b.logger = logger
 
@@ -57,7 +57,7 @@ func (b *BeaconSender) finishSession(session Session) {
 
 type BeaconSenderContext struct {
 	logger          logging.Logger
-	httpClient      *http.Client
+	httpClient      *HttpClient
 	config          *Configuration
 	isTerminalState bool
 
@@ -94,17 +94,104 @@ func (b *BeaconSenderContext) finishSession(session Session) {
 	session.finishSession()
 }
 
+func (b *BeaconSenderContext) getAllNewSessions() []Session {
+	newSessions := make([]Session, 0)
+
+	for _, session := range b.sessions {
+		if !session.isBeaconConfigurationSet() {
+			newSessions = append(newSessions, session)
+		}
+	}
+
+	return newSessions
+}
+
+func (b *BeaconSenderContext) getAllFinishedAndConfiguredSessions() []Session {
+
+	finishedSessions := make([]Session, 0)
+
+	for _, session := range b.sessions {
+		if session.isBeaconConfigurationSet() && session.isSessionFinished() {
+			finishedSessions = append(finishedSessions, session)
+		}
+	}
+
+	return finishedSessions
+
+}
+
 type BeaconSendingState interface {
 	execute(*BeaconSenderContext)
 	isTerminalState() bool
+	getShutdownState() BeaconSendingState
 	ToString() string
 }
 
+// ------------------------------------------------------------
+// beaconSendingCaptureOnState -> beaconSendingFlushSessionsState
+
 type beaconSendingCaptureOnState struct{}
 
-func (beaconSendingCaptureOnState) execute(context *BeaconSenderContext) {
+func (b *beaconSendingCaptureOnState) execute(context *BeaconSenderContext) {
 	context.sleep()
 	context.logger.Info("Executed state beaconSendingCaptureOnState")
+
+	b.sendNewSessionRequests(context)
+}
+
+func (b *beaconSendingCaptureOnState) sendNewSessionRequests(context *BeaconSenderContext) *StatusResponse {
+
+	var statusResponse *StatusResponse
+
+	for _, session := range context.getAllNewSessions() {
+
+		if !session.canSendNewSessionRequest() {
+			currentConfiguration := session.getBeaconConfiguration()
+			newConfiguration := &BeaconConfiguration{
+				multiplicity:        0,
+				dataCollectionLevel: currentConfiguration.dataCollectionLevel,
+				crashReportingLevel: currentConfiguration.crashReportingLevel,
+			}
+			session.updateBeaconConfiguration(newConfiguration)
+			continue
+		}
+
+		statusResponse = context.httpClient.sendNewSessionRequest()
+
+		if statusResponse.responseCode < 400 {
+			currentConfiguration := session.getBeaconConfiguration()
+			newConfiguration := &BeaconConfiguration{
+				multiplicity:        statusResponse.multiplicity,
+				dataCollectionLevel: currentConfiguration.dataCollectionLevel,
+				crashReportingLevel: currentConfiguration.crashReportingLevel,
+			}
+			session.updateBeaconConfiguration(newConfiguration)
+
+		}
+
+	}
+
+	return statusResponse
+
+}
+
+func (b *beaconSendingCaptureOnState) sendFinishedSessions(context *BeaconSenderContext) *StatusResponse {
+
+	var statusResponse *StatusResponse
+
+	for _, finishedSession := range context.getAllFinishedAndConfiguredSessions() {
+
+		if finishedSession.isDataSendingAllowed() {
+
+			statusResponse := finishedSession.sendBeacon(context.httpClient)
+
+		}
+	}
+
+}
+
+func (b *beaconSendingCaptureOnState) getShutdownState() BeaconSendingState {
+	return &beaconSendingFlushSessionsState{}
 }
 
 func (beaconSendingCaptureOnState) isTerminalState() bool {
@@ -114,6 +201,9 @@ func (beaconSendingCaptureOnState) isTerminalState() bool {
 func (beaconSendingCaptureOnState) ToString() string {
 	return "beaconSendingCaptureOnState"
 }
+
+// ------------------------------------------------------------
+// beaconSendingInitState -> beaconSendingCaptureOnState
 
 type beaconSendingInitState struct{}
 
@@ -133,6 +223,71 @@ func (beaconSendingInitState) ToString() string {
 
 func (beaconSendingInitState) isTerminalState() bool {
 	return false
+}
+
+func (b *beaconSendingInitState) getShutdownState() BeaconSendingState {
+	return &beaconSendingCaptureOnState{}
+}
+
+// ------------------------------------------------------------
+// beaconSendingFlushSessionsState -> beaconSendingTerminalState
+
+type beaconSendingFlushSessionsState struct{}
+
+func (beaconSendingFlushSessionsState) execute(context *BeaconSenderContext) {
+
+	// first get all sessions that do not have any multiplicity se
+	for _, newSession := range context.getAllNewSessions() {
+		currentConfiguration := newSession.getBeaconConfiguration()
+		newSession.updateBeaconConfiguration(&BeaconConfiguration{
+			multiplicity:        1,
+			dataCollectionLevel: currentConfiguration.dataCollectionLevel,
+			crashReportingLevel: currentConfiguration.crashReportingLevel,
+		})
+
+	}
+
+	context.nextState = &beaconSendingTerminalState{}
+
+}
+
+func (beaconSendingFlushSessionsState) ToString() string {
+	return "beaconSendingInitState"
+}
+
+func (beaconSendingFlushSessionsState) isTerminalState() bool {
+	return false
+}
+
+func (b *beaconSendingFlushSessionsState) getShutdownState() BeaconSendingState {
+	return &beaconSendingCaptureOnState{}
+}
+
+// ------------------------------------------------------------
+// beaconSendingTerminalState ->
+
+type beaconSendingTerminalState struct{}
+
+func (beaconSendingTerminalState) execute(context *BeaconSenderContext) {
+	context.sleep()
+
+	// TODO - Only set this if StatusRequest is OK
+	context.nextState = &beaconSendingCaptureOnState{}
+
+	context.logger.Info("Executed state beaconSendingInitState")
+
+}
+
+func (beaconSendingTerminalState) ToString() string {
+	return "beaconSendingInitState"
+}
+
+func (beaconSendingTerminalState) isTerminalState() bool {
+	return false
+}
+
+func (b *beaconSendingTerminalState) getShutdownState() BeaconSendingState {
+	return &beaconSendingCaptureOnState{}
 }
 
 const (
@@ -158,6 +313,8 @@ type Beacon struct {
 
 	sessionNumber    int
 	sessionStartTime int
+
+	beaconConfiguration BeaconConfiguration
 }
 
 func NewBeacon(logger logging.Logger, beaconCache *beaconCache, config *Configuration, clientIPAddress string) *Beacon {
@@ -169,6 +326,7 @@ func NewBeacon(logger logging.Logger, beaconCache *beaconCache, config *Configur
 	b.beaconCache = beaconCache
 	b.config = config
 	b.clientIPAddress = clientIPAddress
+	b.beaconConfiguration = *config.beaconConfiguration
 
 	return b
 
@@ -226,32 +384,6 @@ func (b *Beacon) addActionData(timestamp int, sb strings.Builder) {
 	b.beaconCache.addActionData(b.sessionNumber, timestamp, sb.String())
 }
 
-/*
-   public void addAction(ActionImpl action) {
-
-       if (isCapturingDisabled()) {
-           return;
-       }
-
-       if (getBeaconConfiguration().getDataCollectionLevel() == DataCollectionLevel.OFF) {
-           return;
-       }
-
-       StringBuilder actionBuilder = new StringBuilder();
-
-       buildBasicEventData(actionBuilder, EventType.ACTION, action.getName());
-
-       addKeyValuePair(actionBuilder, BEACON_KEY_ACTION_ID, action.getID());
-       addKeyValuePair(actionBuilder, BEACON_KEY_PARENT_ACTION_ID, action.getParentID());
-       addKeyValuePair(actionBuilder, BEACON_KEY_START_SEQUENCE_NUMBER, action.getStartSequenceNo());
-       addKeyValuePair(actionBuilder, BEACON_KEY_TIME_0, getTimeSinceSessionStartTime(action.getStartTime()));
-       addKeyValuePair(actionBuilder, BEACON_KEY_END_SEQUENCE_NUMBER, action.getEndSequenceNo());
-       addKeyValuePair(actionBuilder, BEACON_KEY_TIME_1, action.getEndTime() - action.getStartTime());
-
-       addActionData(action.getStartTime(), actionBuilder);
-   }
-*/
-
 func (b *Beacon) getTimeSinceSessionStartTime(timestamp int) int {
 	return timestamp - b.sessionStartTime
 }
@@ -299,4 +431,10 @@ func (b *Beacon) truncate(name string) string {
 	}
 
 	return name
+}
+
+func (b *Beacon) send(client *HttpClient) *StatusResponse {
+	// httpClient := http.Client{}
+	// TODO - Implement Beacon Send
+
 }
