@@ -1,6 +1,10 @@
 package openkitgo
 
-import "github.com/op/go-logging"
+import (
+	"github.com/op/go-logging"
+	"net/http"
+	"time"
+)
 
 type openKitType int
 
@@ -10,9 +14,9 @@ const (
 )
 
 type OpenKit interface {
-	CreateSession(string) *Session
-	waitForInitCompletion(int) bool
-	isInitialized() bool
+	// CreateSession(string) *Session
+	// waitForInitCompletion(int) bool
+	// isInitialized() bool
 }
 
 type openkit struct {
@@ -21,10 +25,16 @@ type openkit struct {
 	logger        logging.Logger
 }
 
-func (*openkit) CreateSession(clientIPAddress string) *Session {
+/*
+func (o *openkit) CreateSession(clientIPAddress string) *Session {
 
 	// TODO Create Beacon
-	return &Session{}
+	return &session{}
+}
+*/
+
+func (o *openkit) initialize() {
+	o.beaconSender.initialize()
 }
 
 type OpenKitBuilder interface {
@@ -101,12 +111,19 @@ func (ob *openKitBuilder) WithModelID(modelID string) OpenKitBuilder {
 func (ob *openKitBuilder) Build() OpenKit {
 	// TODO - Set Defaults manually here if they were not set?
 
+	client := &http.Client{
+		Timeout: 30 * time.Second,
+	}
 	c := NewConfiguration(ob.endpointURL, ob.applicationName, ob.applicationID, ob.applicationVersion, ob.deviceID, ob.operatingSystem, ob.manufacturer, ob.modelID)
+	b := NewBeaconSender(ob.logger, c, client)
 
-	return &openkit{
-		// TODO - Implement BeaconSender
-		beaconSender:  nil,
+	openkit := &openkit{
+		beaconSender:  b,
 		configuration: c,
 		logger:        ob.logger,
 	}
+
+	openkit.initialize()
+	return openkit
+
 }
