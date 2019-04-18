@@ -18,6 +18,7 @@ type session struct {
 	logger       logging.Logger
 }
 
+/*
 func NewSession(logger logging.Logger, beaconSender BeaconSender, beacon Beacon) Session {
 	s := new(session)
 	s.logger = logger
@@ -28,4 +29,4 @@ func NewSession(logger logging.Logger, beaconSender BeaconSender, beacon Beacon)
 	// TODO         beacon.startSession();
 
 	return s
-}
+}*/
