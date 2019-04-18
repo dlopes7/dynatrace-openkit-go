@@ -29,6 +29,11 @@ type Configuration struct {
 
 func NewConfiguration(endpointURL string, applicationName string, applicationID string, applicationVersion string, deviceID int, operatingSystem string, manufacturer string, modelID string) *Configuration {
 
+	// TODO - Implement BeaconCacheConfiguration
+	// TODO - Implement BeaconConfiguration
+	// TODO - Implement DefaultSessionIDProvider
+	// TODO - Implement getTrustManager
+
 	c := new(Configuration)
 	c.endpointURL = endpointURL
 	c.applicationName = applicationName

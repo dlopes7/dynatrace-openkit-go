@@ -11,6 +11,8 @@ const (
 
 type OpenKit interface {
 	CreateSession(string) *Session
+	waitForInitCompletion(int) bool
+	isInitialized() bool
 }
 
 type openkit struct {
@@ -97,10 +99,12 @@ func (ob *openKitBuilder) WithModelID(modelID string) OpenKitBuilder {
 }
 
 func (ob *openKitBuilder) Build() OpenKit {
+	// TODO - Set Defaults manually here if they were not set?
 
 	c := NewConfiguration(ob.endpointURL, ob.applicationName, ob.applicationID, ob.applicationVersion, ob.deviceID, ob.operatingSystem, ob.manufacturer, ob.modelID)
 
 	return &openkit{
+		// TODO - Implement BeaconSender
 		beaconSender:  nil,
 		configuration: c,
 		logger:        ob.logger,
