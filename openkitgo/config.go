@@ -1,6 +1,10 @@
 package openkitgo
 
-import "strconv"
+import (
+	"math/rand"
+	"strconv"
+	"time"
+)
 
 const DEFAULT_SEND_INTERVAL = 2 * 60 * 1000 // default: wait 2m (in ms) to send beacon
 const DEFAULT_MAX_BEACON_SIZE = 30 * 1024   // default: max 30KB (in B) to send in one beacon
@@ -50,4 +54,12 @@ func NewConfiguration(endpointURL string, applicationName string, applicationID 
 	c.device = d
 
 	return c
+}
+
+func (c *Configuration) createSessionNumber() int {
+	return rand.Intn(2147483647)
+}
+
+func (c *Configuration) makeTimestamp() int {
+	return int(time.Now().UnixNano() / int64(time.Millisecond))
 }

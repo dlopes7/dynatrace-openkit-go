@@ -14,24 +14,26 @@ const (
 )
 
 type OpenKit interface {
-	// CreateSession(string) *Session
+	CreateSession(string) Session
 	// waitForInitCompletion(int) bool
 	// isInitialized() bool
 }
 
 type openkit struct {
+	beaconCache   *beaconCache
 	beaconSender  *BeaconSender
 	configuration *Configuration
 	logger        logging.Logger
 }
 
-/*
-func (o *openkit) CreateSession(clientIPAddress string) *Session {
+func (o *openkit) CreateSession(clientIPAddress string) Session {
 
-	// TODO Create Beacon
-	return &session{}
+	o.logger.Debugf("Creating session with IP address %s\n", clientIPAddress)
+
+	beacon := NewBeacon(o.logger, o.beaconCache, o.configuration, clientIPAddress)
+
+	return NewSession(&o.logger, o.beaconSender, beacon)
 }
-*/
 
 func (o *openkit) initialize() {
 	o.beaconSender.initialize()
@@ -118,12 +120,16 @@ func (ob *openKitBuilder) Build() OpenKit {
 	b := NewBeaconSender(ob.logger, c, client)
 
 	openkit := &openkit{
+		beaconCache:   NewBeaconCache(&ob.logger),
 		beaconSender:  b,
 		configuration: c,
 		logger:        ob.logger,
 	}
 
+	openkit.logger.Debug("Initializing OpenKit...")
+
 	openkit.initialize()
+
 	return openkit
 
 }
