@@ -2,6 +2,7 @@ package openkitgo
 
 import (
 	"encoding/hex"
+	"fmt"
 	"github.com/op/go-logging"
 	"strconv"
 	"strings"
@@ -28,8 +29,8 @@ type StatusResponse struct {
 	monitorName    string
 	serverID       int
 	maxBeaconSize  int
-	captureErrors  int
-	captureCrashes int
+	captureErrors  bool
+	captureCrashes bool
 	multiplicity   int
 }
 
@@ -44,6 +45,16 @@ func NewStatusResponse(logger logging.Logger, response string, responseCode int,
 	s.logger = logger
 	s.responseCode = responseCode
 	s.headers = headers
+
+	s.capture = true
+	s.captureCrashes = true
+	s.captureErrors = true
+	s.sendInterval = -1
+	s.serverID = -1
+	s.maxBeaconSize = -1
+	s.multiplicity = 1
+
+	logger.Debugf("NewStatusResponse: %s", response)
 
 	s.parseResponse(response)
 	return s
@@ -68,15 +79,15 @@ func (s *StatusResponse) parseResponse(response string) {
 
 		} else if RESPONSE_KEY_MAX_BEACON_SIZE == kv.key {
 			value, _ := strconv.Atoi(kv.value)
-			s.maxBeaconSize = value
+			s.maxBeaconSize = value * 1024
 
 		} else if RESPONSE_KEY_CAPTURE_ERRORS == kv.key {
 			value, _ := strconv.Atoi(kv.value)
-			s.captureErrors = value
+			s.captureErrors = value != 0
 
 		} else if RESPONSE_KEY_CAPTURE_CRASHES == kv.key {
 			value, _ := strconv.Atoi(kv.value)
-			s.captureCrashes = value
+			s.captureCrashes = value != 0
 
 		} else if RESPONSE_KEY_MULTIPLICITY == kv.key {
 			value, _ := strconv.Atoi(kv.value)
@@ -107,12 +118,38 @@ func (s *StatusResponse) parseResponseKeyValuePair(response string) []*KeyValueP
 	return result
 }
 
-func encodeWithReservedChars(input string, encoding string, additionalReservedChars []rune) string {
+func encodeWithReservedChars(input string, encoding string, additionalReservedChars []string) string {
 	src := []byte(input)
 
 	dst := make([]byte, hex.EncodedLen(len(src)))
-	hex.Encode(dst, src)
+	encode(dst, src, additionalReservedChars)
+
+	fmt.Printf("ORIGINAL: %s\n", input)
+	fmt.Printf("ENCODED:  %s\n", string(dst))
 
 	return string(dst)
 
+}
+
+func encode(dst, src []byte, additionalReservedChars []string) int {
+	for i, v := range src {
+
+		if stringInSlice(string(v), additionalReservedChars) {
+
+		}
+
+		dst[i*2] = hextable[v>>4]
+		dst[i*2+1] = hextable[v&0x0f]
+	}
+
+	return len(src) * 2
+}
+
+func stringInSlice(a string, list []string) bool {
+	for _, b := range list {
+		if b == a {
+			return true
+		}
+	}
+	return false
 }

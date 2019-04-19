@@ -2,6 +2,7 @@ package openkitgo
 
 import (
 	"github.com/op/go-logging"
+	"strings"
 	"sync"
 )
 
@@ -11,7 +12,7 @@ type BeaconCache interface {
 	addActionData(int, int, string)
 
 	deleteCacheEntry(int)
-	getNextBeaconChunk(int, string, int, rune)
+	getNextBeaconChunk(int, string, int, string)
 	removeChunkedData(int)
 	resetChunkedData(int)
 
@@ -62,7 +63,7 @@ func (b *beaconCache) addObserver(observer Observer) {
 }
 
 func (b *beaconCache) addEventData(beaconID int, timestamp int, data string) {
-	b.logger.Debugf("addEventData(sn=%d, timestamp=%d, data=%s)", beaconID, timestamp, data)
+	b.logger.Debugf("addEventData(sn: %d, timestamp: %d, data: %s)", beaconID, timestamp, data)
 
 	entry := b.getCachedEntryOrInsert(beaconID)
 	record := &beaconCacheRecord{
@@ -77,6 +78,23 @@ func (b *beaconCache) addEventData(beaconID int, timestamp int, data string) {
 	b.cacheSizeInBytes += record.getDataSizeInBytes()
 
 	b.onDataAdded()
+
+}
+
+func (b *beaconCache) deleteCacheEntry(beaconID int) {
+	b.logger.Debugf("deleteCacheEntry(sn=%d", beaconID)
+
+	var entry *beaconCacheEntry
+
+	b.globalCacheLock.Lock()
+	entry = b.beacons[beaconID]
+
+	delete(b.beacons, beaconID)
+	b.globalCacheLock.Unlock()
+
+	if entry != nil {
+		b.cacheSizeInBytes += -1 * entry.totalNumBytes
+	}
 
 }
 
@@ -150,6 +168,29 @@ func (b *beaconCache) setChanged() {
 
 }
 
+func (b *beaconCache) getNextBeaconChunk(beaconID int, chunkPrefix string, maxSize int, delimiter string) *string {
+	entry := b.getCachedEntry(beaconID)
+
+	if entry == nil {
+		// a cache entry for the given beaconID does not exist
+		return nil
+	}
+
+	if entry.needsDataCopyBeforeChunking() {
+		var numBytes int
+
+		entry.lock.Lock()
+		numBytes = entry.totalNumBytes
+		entry.copyDataForChunking()
+		entry.lock.Unlock()
+
+		b.cacheSizeInBytes += -1 * numBytes
+	}
+
+	return entry.getChunk(chunkPrefix, maxSize, delimiter)
+
+}
+
 func (b *beaconCache) addActionData(beaconID int, timestamp int, data string) {
 	b.logger.Debugf("addActionData(sn=%d, timestamp=%d, data=%s)\n")
 
@@ -166,6 +207,17 @@ func (b *beaconCache) addActionData(beaconID int, timestamp int, data string) {
 	b.cacheSizeInBytes += record.getDataSizeInBytes()
 
 	b.onDataAdded()
+
+}
+
+func (b *beaconCache) removeChunkedData(beaconID int) {
+	entry := b.getCachedEntry(beaconID)
+	if entry == nil {
+		// a cache entry for the given beaconID does not exist
+		return
+	}
+
+	entry.removeDataMarkedForSending()
 
 }
 
@@ -220,6 +272,88 @@ func (b *beaconCacheEntry) resetDataMarkedForSending() {
 
 	b.totalNumBytes += numBytes
 
+}
+
+func (b *beaconCacheEntry) needsDataCopyBeforeChunking() bool {
+	return b.actionDataBeingSent == nil && b.eventDataBeingSent == nil
+}
+
+func (b *beaconCacheEntry) copyDataForChunking() {
+	b.actionDataBeingSent = b.actionData
+	b.eventDataBeingSent = b.eventData
+
+	b.actionData = make([]*beaconCacheRecord, 0)
+	b.eventData = make([]*beaconCacheRecord, 0)
+
+	b.totalNumBytes = 0
+
+}
+
+func (b *beaconCacheEntry) getChunk(chunkPrefix string, maxSize int, delimiter string) *string {
+	if !b.hasDataToSend() {
+
+		b.eventDataBeingSent = nil
+		b.actionDataBeingSent = nil
+
+		ret := ""
+		return &ret
+	}
+	return b.getNextChunk(chunkPrefix, maxSize, delimiter)
+}
+
+func (b *beaconCacheEntry) getNextChunk(chunkPrefix string, maxSize int, delimiter string) *string {
+	var beaconBuilder strings.Builder
+
+	beaconBuilder.WriteString(chunkPrefix)
+
+	b.chunkifyDataList(&beaconBuilder, b.eventDataBeingSent, maxSize, delimiter)
+	b.chunkifyDataList(&beaconBuilder, b.actionDataBeingSent, maxSize, delimiter)
+
+	res := beaconBuilder.String()
+	return &res
+}
+
+func (b *beaconCacheEntry) chunkifyDataList(chunkBuilder *strings.Builder, dataBeingSent []*beaconCacheRecord, maxSize int, delimiter string) {
+
+	for _, dataBeingSent := range dataBeingSent {
+
+		if chunkBuilder.Len() <= maxSize {
+
+			dataBeingSent.markedForSending = true
+			chunkBuilder.WriteString(delimiter)
+			chunkBuilder.WriteString(dataBeingSent.data)
+		}
+	}
+}
+
+func (b *beaconCacheEntry) hasDataToSend() bool {
+	return (b.eventDataBeingSent != nil && len(b.eventDataBeingSent) > 0) || (b.actionDataBeingSent != nil && len(b.actionDataBeingSent) > 0)
+}
+
+func (b *beaconCacheEntry) removeDataMarkedForSending() {
+
+	if !b.hasDataToSend() {
+		// data has not been copied yet - avoid NPE
+		return
+	}
+
+	i := 0
+	for _, e := range b.eventDataBeingSent {
+		if !e.markedForSending {
+			b.eventDataBeingSent[i] = e
+			i++
+		}
+	}
+	b.eventDataBeingSent = b.eventDataBeingSent[:i]
+
+	i = 0
+	for _, e := range b.actionDataBeingSent {
+		if !e.markedForSending {
+			b.actionDataBeingSent[i] = e
+			i++
+		}
+	}
+	b.actionDataBeingSent = b.actionDataBeingSent[:i]
 }
 
 type beaconCacheRecord struct {

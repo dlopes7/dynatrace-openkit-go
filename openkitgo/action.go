@@ -43,6 +43,10 @@ func NewAction(logger *logging.Logger, beacon *Beacon, actionName string, openCh
 	a.beacon = beacon
 	a.name = actionName
 
+	a.startTime = beacon.getCurrentTimestamp()
+	a.startSequenceNo = beacon.createSequenceNumber()
+	a.ID = beacon.createID()
+
 	a.thisLevelActions = make(map[int]Action)
 	a.openChildActions = openChildActions
 

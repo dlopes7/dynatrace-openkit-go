@@ -2,7 +2,6 @@ package openkitgo
 
 import (
 	"github.com/op/go-logging"
-	"net/http"
 	"strconv"
 	"strings"
 	"sync/atomic"
@@ -25,6 +24,7 @@ func NewBeaconSender(logger logging.Logger, config *Configuration, client *HttpC
 		config:       config,
 		httpClient:   client,
 		currentState: new(beaconSendingInitState),
+		sessions:     make(map[int]*session, 0),
 	}
 
 	return b
@@ -41,7 +41,7 @@ func (b *BeaconSender) initialize() {
 
 }
 
-func (b *BeaconSender) startSession(session Session) {
+func (b *BeaconSender) startSession(session *session) {
 	b.logger.Debug("BeaconSender startSession()")
 
 	b.context.startSession(session)
@@ -64,7 +64,13 @@ type BeaconSenderContext struct {
 	currentState BeaconSendingState
 	nextState    BeaconSendingState
 
-	sessions []Session
+	sessions map[int]*session
+}
+
+func (b BeaconSenderContext) removeSession(session *session) {
+
+	delete(b.sessions, session.ID)
+
 }
 
 func (b BeaconSenderContext) isCapture() bool {
@@ -86,8 +92,8 @@ func (b *BeaconSenderContext) executeCurrentState() {
 	}
 }
 
-func (b *BeaconSenderContext) startSession(session Session) {
-	b.sessions = append(b.sessions, session)
+func (b *BeaconSenderContext) startSession(session *session) {
+	b.sessions[session.ID] = session
 }
 
 func (b *BeaconSenderContext) finishSession(session Session) {
@@ -98,6 +104,7 @@ func (b *BeaconSenderContext) getAllNewSessions() []Session {
 	newSessions := make([]Session, 0)
 
 	for _, session := range b.sessions {
+
 		if !session.isBeaconConfigurationSet() {
 			newSessions = append(newSessions, session)
 		}
@@ -106,11 +113,18 @@ func (b *BeaconSenderContext) getAllNewSessions() []Session {
 	return newSessions
 }
 
-func (b *BeaconSenderContext) getAllFinishedAndConfiguredSessions() []Session {
+func (b *BeaconSenderContext) handleStatusResponse(statusResponse *StatusResponse) {
 
-	finishedSessions := make([]Session, 0)
+	b.config.updateSettings(statusResponse)
+
+}
+
+func (b *BeaconSenderContext) getAllFinishedAndConfiguredSessions() []*session {
+
+	finishedSessions := make([]*session, 0)
 
 	for _, session := range b.sessions {
+
 		if session.isBeaconConfigurationSet() && session.isSessionFinished() {
 			finishedSessions = append(finishedSessions, session)
 		}
@@ -136,7 +150,23 @@ func (b *beaconSendingCaptureOnState) execute(context *BeaconSenderContext) {
 	context.sleep()
 	context.logger.Info("Executed state beaconSendingCaptureOnState")
 
-	b.sendNewSessionRequests(context)
+	newSessionsResponse := b.sendNewSessionRequests(context)
+	finishedSessionsResponse := b.sendFinishedSessions(context)
+
+	lastStatusResponse := newSessionsResponse
+	if finishedSessionsResponse != nil {
+		lastStatusResponse = finishedSessionsResponse
+	}
+
+	b.handleStatusResponse(context, lastStatusResponse)
+
+}
+
+func (b *beaconSendingCaptureOnState) handleStatusResponse(context *BeaconSenderContext, statusResponse *StatusResponse) {
+	if statusResponse == nil {
+		return
+	}
+	context.handleStatusResponse(statusResponse)
 }
 
 func (b *beaconSendingCaptureOnState) sendNewSessionRequests(context *BeaconSenderContext) *StatusResponse {
@@ -180,13 +210,18 @@ func (b *beaconSendingCaptureOnState) sendFinishedSessions(context *BeaconSender
 	var statusResponse *StatusResponse
 
 	for _, finishedSession := range context.getAllFinishedAndConfiguredSessions() {
+		context.logger.Debug("Found finished session! Sending!")
 
 		if finishedSession.isDataSendingAllowed() {
-
-			statusResponse := finishedSession.sendBeacon(context.httpClient)
+			context.removeSession(finishedSession)
+			statusResponse = finishedSession.sendBeacon(context.httpClient)
+			finishedSession.clearCapturedData()
+			finishedSession.End()
 
 		}
 	}
+
+	return statusResponse
 
 }
 
@@ -290,31 +325,81 @@ func (b *beaconSendingTerminalState) getShutdownState() BeaconSendingState {
 	return &beaconSendingCaptureOnState{}
 }
 
+var RESERVED_CHARACTERS = []rune{'_'}
+
 const (
+	// basic data constants
+	BEACON_KEY_PROTOCOL_VERSION      = "vv"
+	BEACON_KEY_OPENKIT_VERSION       = "va"
+	BEACON_KEY_APPLICATION_ID        = "ap"
+	BEACON_KEY_APPLICATION_NAME      = "an"
+	BEACON_KEY_APPLICATION_VERSION   = "vn"
+	BEACON_KEY_PLATFORM_TYPE         = "pt"
+	BEACON_KEY_AGENT_TECHNOLOGY_TYPE = "tt"
+	BEACON_KEY_VISITOR_ID            = "vi"
+	BEACON_KEY_SESSION_NUMBER        = "sn"
+	BEACON_KEY_CLIENT_IP_ADDRESS     = "ip"
+	BEACON_KEY_MULTIPLICITY          = "mp"
+	BEACON_KEY_DATA_COLLECTION_LEVEL = "dl"
+	BEACON_KEY_CRASH_REPORTING_LEVEL = "cl"
+
+	// device data constants
+	BEACON_KEY_DEVICE_OS           = "os"
+	BEACON_KEY_DEVICE_MANUFACTURER = "mf"
+	BEACON_KEY_DEVICE_MODEL        = "md"
+
+	// timestamp constants
+	BEACON_KEY_SESSION_START_TIME = "tv"
+	BEACON_KEY_TRANSMISSION_TIME  = "tx"
+
+	// Action related constants
 	BEACON_KEY_EVENT_TYPE            = "et"
 	BEACON_KEY_NAME                  = "na"
 	BEACON_KEY_THREAD_ID             = "it"
+	BEACON_KEY_ACTION_ID             = "ca"
 	BEACON_KEY_PARENT_ACTION_ID      = "pa"
 	BEACON_KEY_START_SEQUENCE_NUMBER = "s0"
 	BEACON_KEY_TIME_0                = "t0"
-	BEACON_KEY_ACTION_ID             = "ca"
 	BEACON_KEY_END_SEQUENCE_NUMBER   = "s1"
 	BEACON_KEY_TIME_1                = "t1"
 
+	// data, error & crash capture constants
+	BEACON_KEY_VALUE                     = "vl"
+	BEACON_KEY_ERROR_CODE                = "ev"
+	BEACON_KEY_ERROR_REASON              = "rs"
+	BEACON_KEY_ERROR_STACKTRACE          = "st"
+	BEACON_KEY_WEBREQUEST_RESPONSECODE   = "rc"
+	BEACON_KEY_WEBREQUEST_BYTES_SENT     = "bs"
+	BEACON_KEY_WEBREQUEST_BYTES_RECEIVED = "br"
+
+	// in Java 6 there is no constant for "UTF-8" in the JDK yet, so we define it ourselves
+	CHARSET = "UTF-8"
+
+	// max name length
 	MAX_NAME_LEN = 250
+
+	// web request tag prefix constant
+	TAG_PREFIX = "MT"
+
+	// web request tag reserved characters
+
+	BEACON_DATA_DELIMITER = "&"
 )
 
 type Beacon struct {
-	logger          logging.Logger
-	beaconCache     *beaconCache
-	config          *Configuration
-	clientIPAddress string
-	ops             uint64
+	logger             logging.Logger
+	beaconCache        *beaconCache
+	config             *Configuration
+	clientIPAddress    string
+	nextSequenceNumber uint64
 
+	nextID           uint64
 	sessionNumber    int
 	sessionStartTime int
 
 	beaconConfiguration BeaconConfiguration
+
+	immutableBasicBeaconData string
 }
 
 func NewBeacon(logger logging.Logger, beaconCache *beaconCache, config *Configuration, clientIPAddress string) *Beacon {
@@ -328,6 +413,8 @@ func NewBeacon(logger logging.Logger, beaconCache *beaconCache, config *Configur
 	b.clientIPAddress = clientIPAddress
 	b.beaconConfiguration = *config.beaconConfiguration
 
+	b.immutableBasicBeaconData = b.createImmutableBasicBeaconData()
+
 	return b
 
 }
@@ -337,11 +424,11 @@ func (b *Beacon) startSession() {
 	var eventBuilder strings.Builder
 	b.buildBasicEventData(eventBuilder, EventTypeSESSION_START, "")
 
-	b.addKeyValuePair(eventBuilder, BEACON_KEY_PARENT_ACTION_ID, "0")
-	b.addKeyValuePair(eventBuilder, BEACON_KEY_START_SEQUENCE_NUMBER, strconv.Itoa(b.createSequenceNumber()))
-	b.addKeyValuePair(eventBuilder, BEACON_KEY_TIME_0, "0")
+	b.addKeyValuePair(&eventBuilder, BEACON_KEY_PARENT_ACTION_ID, "0")
+	b.addKeyValuePair(&eventBuilder, BEACON_KEY_START_SEQUENCE_NUMBER, strconv.Itoa(b.createSequenceNumber()))
+	b.addKeyValuePair(&eventBuilder, BEACON_KEY_TIME_0, "0")
 
-	b.addEventData(b.sessionStartTime, eventBuilder)
+	b.addEventData(b.sessionStartTime, &eventBuilder)
 
 }
 
@@ -356,11 +443,11 @@ func (b *Beacon) endSession(session *session) {
 
 	b.buildBasicEventData(eventBuilder, EventTypeSESSION_END, "")
 
-	b.addKeyValuePair(eventBuilder, BEACON_KEY_PARENT_ACTION_ID, strconv.Itoa(0))
-	b.addKeyValuePair(eventBuilder, BEACON_KEY_START_SEQUENCE_NUMBER, strconv.Itoa(b.createSequenceNumber()))
-	b.addKeyValuePair(eventBuilder, BEACON_KEY_TIME_0, strconv.Itoa(b.getTimeSinceSessionStartTime(session.endTime)))
+	b.addKeyValuePair(&eventBuilder, BEACON_KEY_PARENT_ACTION_ID, strconv.Itoa(0))
+	b.addKeyValuePair(&eventBuilder, BEACON_KEY_START_SEQUENCE_NUMBER, strconv.Itoa(b.createSequenceNumber()))
+	b.addKeyValuePair(&eventBuilder, BEACON_KEY_TIME_0, strconv.Itoa(b.getTimeSinceSessionStartTime(session.endTime)))
 
-	b.addEventData(session.endTime, eventBuilder)
+	b.addEventData(session.endTime, &eventBuilder)
 
 }
 
@@ -370,12 +457,12 @@ func (b *Beacon) addAction(action *action) {
 
 	b.buildBasicEventData(actionBuilder, EventTypeACTION, action.name)
 
-	b.addKeyValuePair(actionBuilder, BEACON_KEY_ACTION_ID, strconv.Itoa(action.ID))
-	b.addKeyValuePair(actionBuilder, BEACON_KEY_PARENT_ACTION_ID, strconv.Itoa(action.parentAction.ID))
-	b.addKeyValuePair(actionBuilder, BEACON_KEY_START_SEQUENCE_NUMBER, strconv.Itoa(action.startSequenceNo))
-	b.addKeyValuePair(actionBuilder, BEACON_KEY_TIME_0, strconv.Itoa(b.getTimeSinceSessionStartTime(action.startTime)))
-	b.addKeyValuePair(actionBuilder, BEACON_KEY_END_SEQUENCE_NUMBER, strconv.Itoa(action.endSequenceNo))
-	b.addKeyValuePair(actionBuilder, BEACON_KEY_TIME_1, strconv.Itoa(action.endTime-action.startTime))
+	b.addKeyValuePair(&actionBuilder, BEACON_KEY_ACTION_ID, strconv.Itoa(action.ID))
+	b.addKeyValuePair(&actionBuilder, BEACON_KEY_PARENT_ACTION_ID, strconv.Itoa(action.parentAction.ID))
+	b.addKeyValuePair(&actionBuilder, BEACON_KEY_START_SEQUENCE_NUMBER, strconv.Itoa(action.startSequenceNo))
+	b.addKeyValuePair(&actionBuilder, BEACON_KEY_TIME_0, strconv.Itoa(b.getTimeSinceSessionStartTime(action.startTime)))
+	b.addKeyValuePair(&actionBuilder, BEACON_KEY_END_SEQUENCE_NUMBER, strconv.Itoa(action.endSequenceNo))
+	b.addKeyValuePair(&actionBuilder, BEACON_KEY_TIME_1, strconv.Itoa(action.endTime-action.startTime))
 
 	b.addActionData(action.startTime, actionBuilder)
 }
@@ -389,33 +476,38 @@ func (b *Beacon) getTimeSinceSessionStartTime(timestamp int) int {
 }
 
 func (b *Beacon) createSequenceNumber() int {
-	atomic.AddUint64(&b.ops, 1)
-	return int(b.ops)
+	atomic.AddUint64(&b.nextSequenceNumber, 1)
+	return int(b.nextSequenceNumber)
+}
+
+func (b *Beacon) createID() int {
+	atomic.AddUint64(&b.nextID, 1)
+	return int(b.nextID)
 }
 
 func (b *Beacon) buildBasicEventData(sb strings.Builder, eventType EventType, name string) {
 
-	b.addKeyValuePair(sb, BEACON_KEY_EVENT_TYPE, strconv.Itoa(int(eventType)))
+	b.addKeyValuePair(&sb, BEACON_KEY_EVENT_TYPE, strconv.Itoa(int(eventType)))
 
 	if len(name) != 0 {
-		b.addKeyValuePair(sb, BEACON_KEY_NAME, b.truncate(name))
+		b.addKeyValuePair(&sb, BEACON_KEY_NAME, b.truncate(name))
 	}
 
 	// TODO - Replace "1" with getThreadID()
-	b.addKeyValuePair(sb, BEACON_KEY_THREAD_ID, "1")
+	b.addKeyValuePair(&sb, BEACON_KEY_THREAD_ID, "1")
 
 }
 
-func (b *Beacon) addEventData(timestamp int, sb strings.Builder) {
+func (b *Beacon) addEventData(timestamp int, sb *strings.Builder) {
 	b.beaconCache.addEventData(b.sessionNumber, timestamp, sb.String())
 }
 
-func (b *Beacon) addKeyValuePair(sb strings.Builder, key string, value string) {
+func (b *Beacon) addKeyValuePair(sb *strings.Builder, key string, value string) {
 	b.appendKey(sb, key)
 	sb.WriteString(value)
 }
 
-func (b *Beacon) appendKey(sb strings.Builder, key string) {
+func (b *Beacon) appendKey(sb *strings.Builder, key string) {
 	if sb.Len() != 0 {
 		sb.WriteString("&")
 	}
@@ -433,8 +525,107 @@ func (b *Beacon) truncate(name string) string {
 	return name
 }
 
+func (b *Beacon) addKeyValuePairIfNotNull(sb *strings.Builder, key string, value *string) {
+
+	if value != nil {
+		b.addKeyValuePair(sb, key, *value)
+	}
+}
+
+func (b *Beacon) createImmutableBasicBeaconData() string {
+
+	var basicBeaconBuilder strings.Builder
+
+	// version and application information
+	b.addKeyValuePair(&basicBeaconBuilder, BEACON_KEY_PROTOCOL_VERSION, strconv.Itoa(PROTOCOL_VERSION))
+	b.addKeyValuePair(&basicBeaconBuilder, BEACON_KEY_OPENKIT_VERSION, OPENKIT_VERSION)
+	b.addKeyValuePair(&basicBeaconBuilder, BEACON_KEY_APPLICATION_ID, b.config.applicationID)
+	b.addKeyValuePair(&basicBeaconBuilder, BEACON_KEY_APPLICATION_NAME, b.config.applicationName)
+	b.addKeyValuePairIfNotNull(&basicBeaconBuilder, BEACON_KEY_APPLICATION_VERSION, &b.config.applicationVersion)
+	b.addKeyValuePair(&basicBeaconBuilder, BEACON_KEY_PLATFORM_TYPE, strconv.Itoa(PLATFORM_TYPE_OPENKIT))
+	b.addKeyValuePair(&basicBeaconBuilder, BEACON_KEY_AGENT_TECHNOLOGY_TYPE, AGENT_TECHNOLOGY_TYPE)
+
+	// device/visitor ID, session number and IP address
+	b.addKeyValuePair(&basicBeaconBuilder, BEACON_KEY_VISITOR_ID, b.config.deviceID)
+	b.addKeyValuePair(&basicBeaconBuilder, BEACON_KEY_SESSION_NUMBER, strconv.Itoa(b.sessionNumber))
+	b.addKeyValuePair(&basicBeaconBuilder, BEACON_KEY_CLIENT_IP_ADDRESS, b.clientIPAddress)
+
+	// platform information
+	b.addKeyValuePairIfNotNull(&basicBeaconBuilder, BEACON_KEY_DEVICE_OS, &b.config.device.operatingSystem)
+	b.addKeyValuePairIfNotNull(&basicBeaconBuilder, BEACON_KEY_DEVICE_MANUFACTURER, &b.config.device.manufacturer)
+	b.addKeyValuePairIfNotNull(&basicBeaconBuilder, BEACON_KEY_DEVICE_MODEL, &b.config.device.modelID)
+
+	beaconConfig := b.beaconConfiguration
+	b.addKeyValuePair(&basicBeaconBuilder, BEACON_KEY_DATA_COLLECTION_LEVEL, strconv.Itoa(beaconConfig.dataCollectionLevel))
+	b.addKeyValuePair(&basicBeaconBuilder, BEACON_KEY_CRASH_REPORTING_LEVEL, strconv.Itoa(beaconConfig.crashReportingLevel))
+
+	return basicBeaconBuilder.String()
+}
+
+func (b *Beacon) appendMutableBeaconData(immutableBasicBeaconData *string) string {
+
+	var mutableBeaconDataBuilder strings.Builder
+
+	if immutableBasicBeaconData != nil && len(*immutableBasicBeaconData) > 0 {
+
+		mutableBeaconDataBuilder.WriteString(*immutableBasicBeaconData)
+		mutableBeaconDataBuilder.WriteString(BEACON_DATA_DELIMITER)
+	}
+
+	// append timestamp data
+	mutableBeaconDataBuilder.WriteString(b.createTimestampData())
+
+	// append multiplicity
+	mutableBeaconDataBuilder.WriteString(BEACON_DATA_DELIMITER)
+	mutableBeaconDataBuilder.WriteString(b.createMultiplicityData())
+
+	return mutableBeaconDataBuilder.String()
+
+}
+
+func (b *Beacon) createTimestampData() string {
+	var sb strings.Builder
+
+	b.addKeyValuePair(&sb, BEACON_KEY_TRANSMISSION_TIME, strconv.Itoa(b.config.makeTimestamp()))
+	b.addKeyValuePair(&sb, BEACON_KEY_SESSION_START_TIME, strconv.Itoa(b.sessionStartTime))
+
+	return sb.String()
+}
+
+func (b *Beacon) createMultiplicityData() string {
+	var sb strings.Builder
+
+	b.addKeyValuePair(&sb, BEACON_KEY_MULTIPLICITY, strconv.Itoa(b.beaconConfiguration.multiplicity))
+
+	return sb.String()
+}
+
 func (b *Beacon) send(client *HttpClient) *StatusResponse {
-	// httpClient := http.Client{}
-	// TODO - Implement Beacon Send
+
+	// TODO remove all this horrible chunk stuff
+
+	var response *StatusResponse
+
+	prefix := b.appendMutableBeaconData(&b.immutableBasicBeaconData)
+
+	for {
+		chunk := b.beaconCache.getNextBeaconChunk(b.sessionNumber, prefix, b.config.maxBeaconSize-1024, BEACON_DATA_DELIMITER)
+		if chunk == nil || *chunk == "" {
+			return response
+
+		}
+
+		encodedBeacon := []byte(*chunk)
+
+		response = client.sendBeaconRequest(b.clientIPAddress, encodedBeacon)
+
+		if response == nil || response.responseCode >= 400 {
+			b.beaconCache.resetChunkedData(b.sessionNumber)
+		} else {
+			b.beaconCache.removeChunkedData(b.sessionNumber)
+		}
+	}
+
+	return response
 
 }

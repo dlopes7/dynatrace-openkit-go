@@ -51,6 +51,8 @@ func NewConfiguration(endpointURL string, applicationName string, applicationID 
 	c.applicationVersion = applicationVersion
 	c.deviceID = strconv.Itoa(deviceID)
 
+	c.maxBeaconSize = DEFAULT_MAX_BEACON_SIZE
+
 	d := &Device{
 		operatingSystem: operatingSystem,
 		manufacturer:    manufacturer,
@@ -80,6 +82,44 @@ func (c *Configuration) createSessionNumber() int {
 
 func (c *Configuration) makeTimestamp() int {
 	return int(time.Now().UnixNano() / int64(time.Millisecond))
+}
+
+func (c *Configuration) updateSettings(statusResponse *StatusResponse) {
+	statusResponse.logger.Debugf("Registering new config properties %+v", statusResponse)
+
+	c.capture = statusResponse.capture
+
+	newServerID := statusResponse.serverID
+	if newServerID == -1 {
+		newServerID = 1
+	}
+
+	if c.httpClientConfiguration.serverID != newServerID {
+		c.httpClientConfiguration = &HTTPClientConfiguration{
+			serverID:      newServerID,
+			applicationID: c.applicationID,
+			baseURL:       c.endpointURL,
+		}
+	}
+
+	newSendInterval := statusResponse.sendInterval
+	if newSendInterval == -1 {
+		newSendInterval = DEFAULT_SEND_INTERVAL
+	}
+
+	if c.sendInterval != newSendInterval {
+		c.sendInterval = newSendInterval
+	}
+
+	newMaxBeaconSize := statusResponse.maxBeaconSize
+	if newMaxBeaconSize == -1 {
+		newMaxBeaconSize = DEFAULT_MAX_BEACON_SIZE
+	}
+
+	if c.maxBeaconSize != newMaxBeaconSize {
+		c.maxBeaconSize = newMaxBeaconSize
+	}
+
 }
 
 type HTTPClientConfiguration struct {

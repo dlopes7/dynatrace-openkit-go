@@ -10,7 +10,9 @@ import (
 	"strings"
 )
 
-var QUERY_RESERVED_CHARACTERS = []rune{'_'}
+var QUERY_RESERVED_CHARACTERS = []string{"_"}
+
+const hextable = "0123456789abcdef"
 
 const (
 	// request type constants
@@ -93,6 +95,17 @@ func (c *HttpClient) sendNewSessionRequest() *StatusResponse {
 	return response
 }
 
+func (c *HttpClient) sendBeaconRequest(clientIPAddress string, body []byte) *StatusResponse {
+	c.logger.Debugf("sendBeaconRequest() - Body: %s\n", body)
+	response, err := c.sendRequest(REQUEST_TYPE_BEACON, c.monitorURL, &clientIPAddress, body, "POST")
+	if err != nil {
+		c.logger.Errorf("Error getting response for sendBeaconRequest: %s\n", err.Error())
+		return nil
+	}
+
+	return response
+}
+
 func (c *HttpClient) sendRequest(requestType string, url string, clientIPAddress *string, data []byte, method string) (*StatusResponse, error) {
 	c.logger.Debugf("sendRequest() - HTTP %s Request: %s", requestType, url)
 
@@ -145,7 +158,8 @@ func appendQueryParam(sb *strings.Builder, key string, value string) {
 	sb.WriteString(key)
 	sb.WriteString("=")
 
-	sb.WriteString(encodeWithReservedChars(value, "UTF-8", QUERY_RESERVED_CHARACTERS))
+	sb.WriteString(value)
+	// sb.WriteString(encodeWithReservedChars(value, "UTF-8", QUERY_RESERVED_CHARACTERS))
 
 }
 

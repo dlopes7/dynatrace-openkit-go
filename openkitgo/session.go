@@ -1,6 +1,8 @@
 package openkitgo
 
-import "github.com/op/go-logging"
+import (
+	"github.com/op/go-logging"
+)
 
 type Session interface {
 	enterAction(string) Action
@@ -18,10 +20,12 @@ type Session interface {
 	getBeaconConfiguration() *BeaconConfiguration
 	updateBeaconConfiguration(*BeaconConfiguration)
 
-	sendBeacon() *StatusResponse
+	sendBeacon(*HttpClient) *StatusResponse
+	clearCapturedData()
 }
 
 type session struct {
+	ID      int
 	endTime int
 
 	beaconSender *BeaconSender
@@ -33,6 +37,9 @@ type session struct {
 	sessionFinished           bool
 	beaconConfigurationSet    bool
 	numNewSessionRequestsLeft int
+
+	position      int
+	sessionNumber int
 }
 
 func NewSession(logger *logging.Logger, beaconSender *BeaconSender, beacon *Beacon) Session {
@@ -41,6 +48,7 @@ func NewSession(logger *logging.Logger, beaconSender *BeaconSender, beacon *Beac
 	s.logger = logger
 	s.beaconSender = beaconSender
 	s.beacon = beacon
+	s.ID = s.beacon.config.createSessionNumber()
 	s.openRootActions = make(map[int]Action)
 
 	s.numNewSessionRequestsLeft = 4
@@ -48,6 +56,10 @@ func NewSession(logger *logging.Logger, beaconSender *BeaconSender, beacon *Beac
 	beacon.startSession()
 
 	return s
+}
+
+func (s *session) clearCapturedData() {
+	s.beacon.beaconCache.deleteCacheEntry(s.beacon.sessionNumber)
 }
 
 func (s *session) enterAction(actionName string) Action {
@@ -92,6 +104,8 @@ func (s *session) sendBeacon(httpClient *HttpClient) *StatusResponse {
 
 func (s *session) End() {
 	s.logger.Debug("Session.end()")
+
+	s.endTime = s.beacon.getCurrentTimestamp()
 
 	for len(s.openRootActions) != 0 {
 		for _, a := range s.openRootActions {
