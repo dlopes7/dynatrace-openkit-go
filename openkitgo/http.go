@@ -84,6 +84,17 @@ func buildNewSessionURL(baseURL string, applicationID string, serverID int) stri
 	return monitorURLBuilder.String()
 }
 
+func (c *HttpClient) sendStatusRequest() *StatusResponse {
+	c.logger.Debug("sendStatusRequest()")
+	response, err := c.sendRequest(REQUESTTYPE_STATUS, c.monitorURL, nil, nil, "GET")
+	if err != nil {
+		c.logger.Errorf("Error getting response for sendNewSessionRequest: %s\n", err.Error())
+		return nil
+	}
+	return response
+
+}
+
 func (c *HttpClient) sendNewSessionRequest() *StatusResponse {
 	c.logger.Debug("sendNewSessionRequest()")
 	response, err := c.sendRequest(REQUEST_TYPE_NEW_SESSION, c.newSessionURL, nil, nil, "GET")
@@ -158,8 +169,8 @@ func appendQueryParam(sb *strings.Builder, key string, value string) {
 	sb.WriteString(key)
 	sb.WriteString("=")
 
-	sb.WriteString(value)
-	// sb.WriteString(encodeWithReservedChars(value, "UTF-8", QUERY_RESERVED_CHARACTERS))
+	// sb.WriteString(value)
+	sb.WriteString(encodeWithReservedChars(value, "UTF-8", QUERY_RESERVED_CHARACTERS))
 
 }
 

@@ -5,7 +5,6 @@ import (
 	"strconv"
 	"strings"
 	"sync/atomic"
-	"time"
 )
 
 // TODO - Implement BeaconSender
@@ -23,6 +22,7 @@ func NewBeaconSender(logger logging.Logger, config *Configuration, client *HttpC
 		logger:       logger,
 		config:       config,
 		httpClient:   client,
+		shutdown:     false,
 		currentState: new(beaconSendingInitState),
 		sessions:     make(map[int]*session, 0),
 	}
@@ -53,276 +53,6 @@ func (b *BeaconSender) finishSession(session Session) {
 
 	b.context.finishSession(session)
 
-}
-
-type BeaconSenderContext struct {
-	logger          logging.Logger
-	httpClient      *HttpClient
-	config          *Configuration
-	isTerminalState bool
-
-	currentState BeaconSendingState
-	nextState    BeaconSendingState
-
-	sessions map[int]*session
-}
-
-func (b BeaconSenderContext) removeSession(session *session) {
-
-	delete(b.sessions, session.ID)
-
-}
-
-func (b BeaconSenderContext) isCapture() bool {
-	return b.config.capture
-}
-
-func (BeaconSenderContext) sleep() {
-	time.Sleep(1 * time.Second)
-}
-
-func (b *BeaconSenderContext) executeCurrentState() {
-	b.nextState = nil
-
-	b.currentState.execute(b)
-
-	if b.nextState != nil && b.nextState != b.currentState {
-		b.logger.Infof("executeCurrentState() - State change from %s to %s", b.currentState.ToString(), b.nextState.ToString())
-		b.currentState = b.nextState
-	}
-}
-
-func (b *BeaconSenderContext) startSession(session *session) {
-	b.sessions[session.ID] = session
-}
-
-func (b *BeaconSenderContext) finishSession(session Session) {
-	session.finishSession()
-}
-
-func (b *BeaconSenderContext) getAllNewSessions() []Session {
-	newSessions := make([]Session, 0)
-
-	for _, session := range b.sessions {
-
-		if !session.isBeaconConfigurationSet() {
-			newSessions = append(newSessions, session)
-		}
-	}
-
-	return newSessions
-}
-
-func (b *BeaconSenderContext) handleStatusResponse(statusResponse *StatusResponse) {
-
-	b.config.updateSettings(statusResponse)
-
-}
-
-func (b *BeaconSenderContext) getAllFinishedAndConfiguredSessions() []*session {
-
-	finishedSessions := make([]*session, 0)
-
-	for _, session := range b.sessions {
-
-		if session.isBeaconConfigurationSet() && session.isSessionFinished() {
-			finishedSessions = append(finishedSessions, session)
-		}
-	}
-
-	return finishedSessions
-
-}
-
-type BeaconSendingState interface {
-	execute(*BeaconSenderContext)
-	isTerminalState() bool
-	getShutdownState() BeaconSendingState
-	ToString() string
-}
-
-// ------------------------------------------------------------
-// beaconSendingCaptureOnState -> beaconSendingFlushSessionsState
-
-type beaconSendingCaptureOnState struct{}
-
-func (b *beaconSendingCaptureOnState) execute(context *BeaconSenderContext) {
-	context.sleep()
-	context.logger.Info("Executed state beaconSendingCaptureOnState")
-
-	newSessionsResponse := b.sendNewSessionRequests(context)
-	finishedSessionsResponse := b.sendFinishedSessions(context)
-
-	lastStatusResponse := newSessionsResponse
-	if finishedSessionsResponse != nil {
-		lastStatusResponse = finishedSessionsResponse
-	}
-
-	b.handleStatusResponse(context, lastStatusResponse)
-
-}
-
-func (b *beaconSendingCaptureOnState) handleStatusResponse(context *BeaconSenderContext, statusResponse *StatusResponse) {
-	if statusResponse == nil {
-		return
-	}
-	context.handleStatusResponse(statusResponse)
-}
-
-func (b *beaconSendingCaptureOnState) sendNewSessionRequests(context *BeaconSenderContext) *StatusResponse {
-
-	var statusResponse *StatusResponse
-
-	for _, session := range context.getAllNewSessions() {
-
-		if !session.canSendNewSessionRequest() {
-			currentConfiguration := session.getBeaconConfiguration()
-			newConfiguration := &BeaconConfiguration{
-				multiplicity:        0,
-				dataCollectionLevel: currentConfiguration.dataCollectionLevel,
-				crashReportingLevel: currentConfiguration.crashReportingLevel,
-			}
-			session.updateBeaconConfiguration(newConfiguration)
-			continue
-		}
-
-		statusResponse = context.httpClient.sendNewSessionRequest()
-
-		if statusResponse.responseCode < 400 {
-			currentConfiguration := session.getBeaconConfiguration()
-			newConfiguration := &BeaconConfiguration{
-				multiplicity:        statusResponse.multiplicity,
-				dataCollectionLevel: currentConfiguration.dataCollectionLevel,
-				crashReportingLevel: currentConfiguration.crashReportingLevel,
-			}
-			session.updateBeaconConfiguration(newConfiguration)
-
-		}
-
-	}
-
-	return statusResponse
-
-}
-
-func (b *beaconSendingCaptureOnState) sendFinishedSessions(context *BeaconSenderContext) *StatusResponse {
-
-	var statusResponse *StatusResponse
-
-	for _, finishedSession := range context.getAllFinishedAndConfiguredSessions() {
-		context.logger.Debug("Found finished session! Sending!")
-
-		if finishedSession.isDataSendingAllowed() {
-			context.removeSession(finishedSession)
-			statusResponse = finishedSession.sendBeacon(context.httpClient)
-			finishedSession.clearCapturedData()
-			finishedSession.End()
-
-		}
-	}
-
-	return statusResponse
-
-}
-
-func (b *beaconSendingCaptureOnState) getShutdownState() BeaconSendingState {
-	return &beaconSendingFlushSessionsState{}
-}
-
-func (beaconSendingCaptureOnState) isTerminalState() bool {
-	return false
-}
-
-func (beaconSendingCaptureOnState) ToString() string {
-	return "beaconSendingCaptureOnState"
-}
-
-// ------------------------------------------------------------
-// beaconSendingInitState -> beaconSendingCaptureOnState
-
-type beaconSendingInitState struct{}
-
-func (beaconSendingInitState) execute(context *BeaconSenderContext) {
-	context.sleep()
-
-	// TODO - Only set this if StatusRequest is OK
-	context.nextState = &beaconSendingCaptureOnState{}
-
-	context.logger.Info("Executed state beaconSendingInitState")
-
-}
-
-func (beaconSendingInitState) ToString() string {
-	return "beaconSendingInitState"
-}
-
-func (beaconSendingInitState) isTerminalState() bool {
-	return false
-}
-
-func (b *beaconSendingInitState) getShutdownState() BeaconSendingState {
-	return &beaconSendingCaptureOnState{}
-}
-
-// ------------------------------------------------------------
-// beaconSendingFlushSessionsState -> beaconSendingTerminalState
-
-type beaconSendingFlushSessionsState struct{}
-
-func (beaconSendingFlushSessionsState) execute(context *BeaconSenderContext) {
-
-	// first get all sessions that do not have any multiplicity se
-	for _, newSession := range context.getAllNewSessions() {
-		currentConfiguration := newSession.getBeaconConfiguration()
-		newSession.updateBeaconConfiguration(&BeaconConfiguration{
-			multiplicity:        1,
-			dataCollectionLevel: currentConfiguration.dataCollectionLevel,
-			crashReportingLevel: currentConfiguration.crashReportingLevel,
-		})
-
-	}
-
-	context.nextState = &beaconSendingTerminalState{}
-
-}
-
-func (beaconSendingFlushSessionsState) ToString() string {
-	return "beaconSendingInitState"
-}
-
-func (beaconSendingFlushSessionsState) isTerminalState() bool {
-	return false
-}
-
-func (b *beaconSendingFlushSessionsState) getShutdownState() BeaconSendingState {
-	return &beaconSendingCaptureOnState{}
-}
-
-// ------------------------------------------------------------
-// beaconSendingTerminalState ->
-
-type beaconSendingTerminalState struct{}
-
-func (beaconSendingTerminalState) execute(context *BeaconSenderContext) {
-	context.sleep()
-
-	// TODO - Only set this if StatusRequest is OK
-	context.nextState = &beaconSendingCaptureOnState{}
-
-	context.logger.Info("Executed state beaconSendingInitState")
-
-}
-
-func (beaconSendingTerminalState) ToString() string {
-	return "beaconSendingInitState"
-}
-
-func (beaconSendingTerminalState) isTerminalState() bool {
-	return false
-}
-
-func (b *beaconSendingTerminalState) getShutdownState() BeaconSendingState {
-	return &beaconSendingCaptureOnState{}
 }
 
 var RESERVED_CHARACTERS = []rune{'_'}
@@ -422,7 +152,7 @@ func NewBeacon(logger logging.Logger, beaconCache *beaconCache, config *Configur
 func (b *Beacon) startSession() {
 
 	var eventBuilder strings.Builder
-	b.buildBasicEventData(eventBuilder, EventTypeSESSION_START, "")
+	b.buildBasicEventData(&eventBuilder, EventTypeSESSION_START, "")
 
 	b.addKeyValuePair(&eventBuilder, BEACON_KEY_PARENT_ACTION_ID, "0")
 	b.addKeyValuePair(&eventBuilder, BEACON_KEY_START_SEQUENCE_NUMBER, strconv.Itoa(b.createSequenceNumber()))
@@ -441,7 +171,7 @@ func (b *Beacon) endSession(session *session) {
 
 	var eventBuilder strings.Builder
 
-	b.buildBasicEventData(eventBuilder, EventTypeSESSION_END, "")
+	b.buildBasicEventData(&eventBuilder, EventTypeSESSION_END, "")
 
 	b.addKeyValuePair(&eventBuilder, BEACON_KEY_PARENT_ACTION_ID, strconv.Itoa(0))
 	b.addKeyValuePair(&eventBuilder, BEACON_KEY_START_SEQUENCE_NUMBER, strconv.Itoa(b.createSequenceNumber()))
@@ -455,19 +185,19 @@ func (b *Beacon) addAction(action *action) {
 
 	var actionBuilder strings.Builder
 
-	b.buildBasicEventData(actionBuilder, EventTypeACTION, action.name)
+	b.buildBasicEventData(&actionBuilder, EventTypeACTION, action.name)
 
 	b.addKeyValuePair(&actionBuilder, BEACON_KEY_ACTION_ID, strconv.Itoa(action.ID))
-	b.addKeyValuePair(&actionBuilder, BEACON_KEY_PARENT_ACTION_ID, strconv.Itoa(action.parentAction.ID))
+	b.addKeyValuePair(&actionBuilder, BEACON_KEY_PARENT_ACTION_ID, strconv.Itoa(action.getParentActionID()))
 	b.addKeyValuePair(&actionBuilder, BEACON_KEY_START_SEQUENCE_NUMBER, strconv.Itoa(action.startSequenceNo))
 	b.addKeyValuePair(&actionBuilder, BEACON_KEY_TIME_0, strconv.Itoa(b.getTimeSinceSessionStartTime(action.startTime)))
 	b.addKeyValuePair(&actionBuilder, BEACON_KEY_END_SEQUENCE_NUMBER, strconv.Itoa(action.endSequenceNo))
 	b.addKeyValuePair(&actionBuilder, BEACON_KEY_TIME_1, strconv.Itoa(action.endTime-action.startTime))
 
-	b.addActionData(action.startTime, actionBuilder)
+	b.addActionData(action.startTime, &actionBuilder)
 }
 
-func (b *Beacon) addActionData(timestamp int, sb strings.Builder) {
+func (b *Beacon) addActionData(timestamp int, sb *strings.Builder) {
 	b.beaconCache.addActionData(b.sessionNumber, timestamp, sb.String())
 }
 
@@ -485,16 +215,16 @@ func (b *Beacon) createID() int {
 	return int(b.nextID)
 }
 
-func (b *Beacon) buildBasicEventData(sb strings.Builder, eventType EventType, name string) {
+func (b *Beacon) buildBasicEventData(sb *strings.Builder, eventType EventType, name string) {
 
-	b.addKeyValuePair(&sb, BEACON_KEY_EVENT_TYPE, strconv.Itoa(int(eventType)))
+	b.addKeyValuePair(sb, BEACON_KEY_EVENT_TYPE, strconv.Itoa(int(eventType)))
 
 	if len(name) != 0 {
-		b.addKeyValuePair(&sb, BEACON_KEY_NAME, b.truncate(name))
+		b.addKeyValuePair(sb, BEACON_KEY_NAME, b.truncate(name))
 	}
 
 	// TODO - Replace "1" with getThreadID()
-	b.addKeyValuePair(&sb, BEACON_KEY_THREAD_ID, "1")
+	b.addKeyValuePair(sb, BEACON_KEY_THREAD_ID, "1")
 
 }
 
@@ -503,8 +233,10 @@ func (b *Beacon) addEventData(timestamp int, sb *strings.Builder) {
 }
 
 func (b *Beacon) addKeyValuePair(sb *strings.Builder, key string, value string) {
+
+	encodedValue := encodeWithReservedChars(value, CHARSET, nil)
 	b.appendKey(sb, key)
-	sb.WriteString(value)
+	sb.WriteString(encodedValue)
 }
 
 func (b *Beacon) appendKey(sb *strings.Builder, key string) {

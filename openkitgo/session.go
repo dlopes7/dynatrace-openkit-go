@@ -5,7 +5,7 @@ import (
 )
 
 type Session interface {
-	enterAction(string) Action
+	EnterAction(string) Action
 	// identifyUser(string)
 	// reportCrash(string, string, string)
 	// traceWebRequest(string)
@@ -62,7 +62,7 @@ func (s *session) clearCapturedData() {
 	s.beacon.beaconCache.deleteCacheEntry(s.beacon.sessionNumber)
 }
 
-func (s *session) enterAction(actionName string) Action {
+func (s *session) EnterAction(actionName string) Action {
 	s.logger.Debugf("enterAction(%s)", actionName)
 
 	return NewAction(s.logger, s.beacon, actionName, s.openRootActions)
@@ -109,7 +109,7 @@ func (s *session) End() {
 
 	for len(s.openRootActions) != 0 {
 		for _, a := range s.openRootActions {
-			a.leaveAction()
+			a.LeaveAction()
 		}
 	}
 

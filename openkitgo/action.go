@@ -9,7 +9,7 @@ type Action interface {
 	// ReportStringValue(string, string)
 	// ReportError(string, int, string)
 	// TraceWebRequest(string)
-	leaveAction()
+	LeaveAction()
 }
 
 type action struct {
@@ -53,7 +53,7 @@ func NewAction(logger *logging.Logger, beacon *Beacon, actionName string, openCh
 	return a
 }
 
-func (a *action) leaveAction() {
+func (a *action) LeaveAction() {
 	a.logger.Debug("Action.leaveAction()")
 
 	a.endTime = a.beacon.getCurrentTimestamp()
@@ -62,5 +62,15 @@ func (a *action) leaveAction() {
 	a.beacon.addAction(a)
 
 	delete(a.thisLevelActions, a.ID)
+
+}
+
+func (a *action) getParentActionID() int {
+
+	if a.parentAction == nil {
+		return 0
+	}
+
+	return a.parentAction.ID
 
 }
