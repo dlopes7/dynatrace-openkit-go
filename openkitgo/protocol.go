@@ -121,5 +121,15 @@ func encodeWithReservedChars(input string, encoding string, additionalReservedCh
 	return url.PathEscape(input)
 }
 
+func isSuccessfulResponse(response *StatusResponse) bool {
+	return response != nil && response.responseCode < 400
+
+}
+
+func isTooManyRequestsResponse(response *StatusResponse) bool {
+	return response != nil && response.responseCode == 429
+
+}
+
 // vv=3&va=7.0.0000&ap=2d18d003-3c76-47b1-9649-463da552e41e&an=My%20OpenKit%20application&vn=1.0.0.0&pt=1&tt=okjava&vi=42&sn=1740741601&ip=8.8.8.8&os=Windows%2010&mf=MyCompany&md=MyModelID&dl=2&cl=2&tx=1555643572502&tv=1555643558485&mp=1&et=18&it=1&pa=0&s0=1&t0=0&et=60&na=jane.doe%40example.com&it=1&pa=0&s0=2&t0=3006&et=19&it=1&pa=0&s0=7&t0=14014&et=1&na=childAction&it=1&ca=2&pa=1&s0=4&t0=7010&s1=5&t1=3001&et=1&na=rootActionName&it=1&ca=1&pa=0&s0=3&t0=4010&s1=6&t1=7003
 // vv=3&va=7.0.0000&ap=2d18d003-3c76-47b1-9649-463da552e41e&an=David%20Helper&vn=1.000&pt=1&tt=okjava&vi=19&sn=1427131847&ip=192.168.15.102&os=arch&mf=david%20inc&md=dellzao&dl=2&cl=2&tx=1555643229523&tv=1555643229057&mp=1&pa=0&s0=1&t0=0

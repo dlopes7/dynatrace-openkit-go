@@ -1,7 +1,6 @@
 package openkitgo
 
 import (
-	"fmt"
 	"math"
 	"time"
 )
@@ -10,7 +9,7 @@ type BeaconSendingState interface {
 	execute(*BeaconSenderContext)
 	isTerminalState() bool
 	getShutdownState() BeaconSendingState
-	ToString() string
+	String() string
 }
 
 var REINIT_DELAY_MILLISECONDS = []time.Duration{
@@ -56,8 +55,6 @@ func (b *beaconSendingInitState) executeStatusRequest(context *BeaconSenderConte
 
 		statusResponse = b.sendStatusRequest(context)
 
-		fmt.Println("Context", context, "statusResponse", statusResponse)
-
 		if context.shutdown || (statusResponse != nil && statusResponse.responseCode < 400) {
 			break
 		}
@@ -95,8 +92,8 @@ func (b *beaconSendingInitState) sendStatusRequest(context *BeaconSenderContext)
 	return statusResponse
 }
 
-func (b *beaconSendingInitState) ToString() string {
-	return "beaconSendingInitState"
+func (b *beaconSendingInitState) String() string {
+	return "Init"
 }
 
 func (b *beaconSendingInitState) isTerminalState() bool {
@@ -116,12 +113,25 @@ func (b *beaconSendingCaptureOnState) execute(context *BeaconSenderContext) {
 	context.sleep(1 * time.Second)
 	context.logger.Info("Executed state beaconSendingCaptureOnState")
 
+	// Send all new Sessions (Beacon Configure not set yet)
 	newSessionsResponse := b.sendNewSessionRequests(context)
+	if isTooManyRequestsResponse(newSessionsResponse) {
+		context.nextState = &beaconSendingCaptureOffState{
+			retryAfter: 10 * time.Minute, // TODO - This has to match the response header
+		}
+		return
+	}
+
 	finishedSessionsResponse := b.sendFinishedSessions(context)
+	if isTooManyRequestsResponse(finishedSessionsResponse) {
+		context.nextState = &beaconSendingCaptureOffState{
+			retryAfter: 10 * time.Minute, // TODO - This has to match the response header
+		}
+		return
+	}
 	// openSessionsResponse := b.sendOpenSessions(context)
 
 	lastStatusResponse := newSessionsResponse
-
 	// if openSessionsResponse != nil {
 	//	lastStatusResponse = openSessionsResponse
 	//}
@@ -223,8 +233,33 @@ func (beaconSendingCaptureOnState) isTerminalState() bool {
 	return false
 }
 
-func (beaconSendingCaptureOnState) ToString() string {
-	return "beaconSendingCaptureOnState"
+func (beaconSendingCaptureOnState) String() string {
+	return "Capture On"
+}
+
+// ------------------------------------------------------------
+// beaconSendingCaptureOffState -> beaconSendingCaptureOnState
+
+type beaconSendingCaptureOffState struct {
+	retryAfter time.Duration
+}
+
+func (beaconSendingCaptureOffState) execute(context *BeaconSenderContext) {
+	// TODO - Implement Capture Off logic
+	context.nextState = &beaconSendingCaptureOnState{}
+
+}
+
+func (beaconSendingCaptureOffState) String() string {
+	return "Capture Off"
+}
+
+func (beaconSendingCaptureOffState) isTerminalState() bool {
+	return false
+}
+
+func (b *beaconSendingCaptureOffState) getShutdownState() BeaconSendingState {
+	return &beaconSendingFlushSessionsState{}
 }
 
 // ------------------------------------------------------------
@@ -249,8 +284,8 @@ func (beaconSendingFlushSessionsState) execute(context *BeaconSenderContext) {
 
 }
 
-func (beaconSendingFlushSessionsState) ToString() string {
-	return "beaconSendingInitState"
+func (beaconSendingFlushSessionsState) String() string {
+	return "Flush"
 }
 
 func (beaconSendingFlushSessionsState) isTerminalState() bool {
@@ -276,8 +311,8 @@ func (beaconSendingTerminalState) execute(context *BeaconSenderContext) {
 
 }
 
-func (beaconSendingTerminalState) ToString() string {
-	return "beaconSendingInitState"
+func (beaconSendingTerminalState) String() string {
+	return "Terminal"
 }
 
 func (beaconSendingTerminalState) isTerminalState() bool {
