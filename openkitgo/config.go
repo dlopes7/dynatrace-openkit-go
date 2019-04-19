@@ -40,8 +40,6 @@ type Configuration struct {
 func NewConfiguration(endpointURL string, applicationName string, applicationID string, applicationVersion string, deviceID int, operatingSystem string, manufacturer string, modelID string) *Configuration {
 
 	// TODO - Implement BeaconCacheConfiguration
-	// TODO - Implement BeaconConfiguration
-	// TODO - Implement DefaultSessionIDProvider
 	// TODO - Implement getTrustManager
 
 	c := new(Configuration)
@@ -60,7 +58,7 @@ func NewConfiguration(endpointURL string, applicationName string, applicationID 
 	}
 
 	c.httpClientConfiguration = &HTTPClientConfiguration{
-		serverID:      1, // TODO - This might change in the future
+		serverID:      1,
 		applicationID: applicationID,
 		baseURL:       endpointURL,
 	}

@@ -7,8 +7,6 @@ import (
 	"sync/atomic"
 )
 
-// TODO - Implement BeaconSender
-
 type BeaconSender struct {
 	logger  logging.Logger
 	context BeaconSenderContext

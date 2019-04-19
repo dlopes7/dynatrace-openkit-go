@@ -304,10 +304,10 @@ type beaconSendingTerminalState struct{}
 func (beaconSendingTerminalState) execute(context *BeaconSenderContext) {
 	context.sleep(1 * time.Second)
 
-	// TODO - Only set this if StatusRequest is OK
+	// TODO - Implement beaconSendingTerminalState
 	context.nextState = &beaconSendingCaptureOnState{}
 
-	context.logger.Info("Executed state beaconSendingInitState")
+	context.logger.Info("Executed state beaconSendingTerminalState")
 
 }
 
