@@ -35,6 +35,10 @@ type action struct {
 	openChildActions map[int]Action
 }
 
+type rootAction struct {
+	action *action
+}
+
 // 	return NewAction(s.logger, s.beacon, actionName, s.openRootActions)
 func NewAction(logger *logging.Logger, beacon *Beacon, actionName string, openChildActions map[int]Action) Action {
 	a := new(action)

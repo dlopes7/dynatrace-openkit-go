@@ -359,3 +359,18 @@ func (b *Beacon) send(client *HttpClient) *StatusResponse {
 	return response
 
 }
+
+func (b *Beacon) identifyUser(userTag string) {
+
+	var sb strings.Builder
+
+	b.buildBasicEventData(&sb, EventTypeIDENTIFY_USER, userTag)
+
+	timestamp := b.config.makeTimestamp()
+	b.addKeyValuePair(&sb, BEACON_KEY_PARENT_ACTION_ID, strconv.Itoa(0))
+	b.addKeyValuePair(&sb, BEACON_KEY_START_SEQUENCE_NUMBER, strconv.Itoa(b.createSequenceNumber()))
+	b.addKeyValuePair(&sb, BEACON_KEY_TIME_0, strconv.Itoa(b.getTimeSinceSessionStartTime(timestamp)))
+
+	b.addEventData(timestamp, &sb)
+
+}

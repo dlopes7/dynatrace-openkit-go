@@ -6,7 +6,7 @@ import (
 
 type Session interface {
 	EnterAction(string) Action
-	// identifyUser(string)
+	IdentifyUser(string)
 	// reportCrash(string, string, string)
 	// traceWebRequest(string)
 	End()
@@ -21,6 +21,7 @@ type Session interface {
 	updateBeaconConfiguration(*BeaconConfiguration)
 
 	sendBeacon(*HttpClient) *StatusResponse
+
 	clearCapturedData()
 }
 
@@ -100,6 +101,11 @@ func (s *session) isDataSendingAllowed() bool {
 
 func (s *session) sendBeacon(httpClient *HttpClient) *StatusResponse {
 	return s.beacon.send(httpClient)
+}
+
+func (s *session) IdentifyUser(userTag string) {
+	s.logger.Debugf("identifyUser(%s)\n", userTag)
+	s.beacon.identifyUser(userTag)
 }
 
 func (s *session) End() {
