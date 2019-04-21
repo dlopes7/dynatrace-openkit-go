@@ -1,6 +1,6 @@
 # Dynatrace Community OpenKit Go
 
-This is a hobbyist implementation of the Dynatrace Openkit for Golang  
+This is a hobbyist implementation of the [Dynatrace Openkit](https://www.dynatrace.com/support/help/extend-dynatrace/dynatrace-sdks/openkit/) for Golang  
 
 It is **not** officially supported by Dynatrace.
 
