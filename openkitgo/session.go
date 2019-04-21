@@ -1,6 +1,7 @@
 package openkitgo
 
 import (
+	"fmt"
 	"github.com/op/go-logging"
 )
 
@@ -113,6 +114,7 @@ func (s *session) End() {
 
 	s.endTime = s.beacon.getCurrentTimestamp()
 
+	fmt.Println("SESSION!", len(s.openRootActions))
 	for len(s.openRootActions) != 0 {
 		for _, a := range s.openRootActions {
 			a.LeaveAction()

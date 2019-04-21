@@ -56,9 +56,7 @@ func newAction(logger *logging.Logger, beacon *Beacon, actionName string, parent
 	a.startSequenceNo = beacon.createSequenceNumber()
 	a.ID = beacon.createID()
 
-	if parentAction != nil {
-		a.thisLevelActions[a.ID] = a
-	}
+	a.thisLevelActions[a.ID] = a
 
 	return a
 }
