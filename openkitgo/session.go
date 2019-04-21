@@ -43,7 +43,7 @@ type session struct {
 	sessionNumber int
 }
 
-func NewSession(logger *logging.Logger, beaconSender *BeaconSender, beacon *Beacon) Session {
+func newSession(logger *logging.Logger, beaconSender *BeaconSender, beacon *Beacon) Session {
 	s := new(session)
 
 	s.logger = logger
@@ -66,7 +66,7 @@ func (s *session) clearCapturedData() {
 func (s *session) EnterAction(actionName string) Action {
 	s.logger.Debugf("enterAction(%s)", actionName)
 
-	return NewAction(s.logger, s.beacon, actionName, s.openRootActions)
+	return newRootAction(s.logger, s.beacon, actionName, s.openRootActions)
 
 }
 

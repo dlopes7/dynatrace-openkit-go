@@ -30,7 +30,7 @@ func (o *openkit) CreateSession(clientIPAddress string) Session {
 
 	beacon := NewBeacon(o.logger, o.beaconCache, o.configuration, clientIPAddress)
 
-	return NewSession(&o.logger, o.beaconSender, beacon)
+	return newSession(&o.logger, o.beaconSender, beacon)
 }
 
 func (o *openkit) initialize() {
