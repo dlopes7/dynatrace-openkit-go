@@ -25,20 +25,19 @@ func main(){
         Build()
     
     
-    for {
-        session := openkit.CreateSession("192.168.15.103")
-        session.IdentifyUser(fmt.Sprintf("USER_%d", rand.Intn(10)))
-        
-        rootAction := session.EnterAction("My User Action")
-        
-        action := rootAction.EnterAction("My Child Action 1 ")
-        action.LeaveAction()
-        
-        rootAction.EnterAction("My Child Action 2")
-        
-        rootAction.LeaveAction()
-        session.End()
-        }
+    session := openkit.CreateSession("192.168.15.103")
+    session.IdentifyUser(fmt.Sprintf("USER_%d", rand.Intn(10)))
+    
+    rootAction := session.EnterAction("My User Action")
+    
+    action := rootAction.EnterAction("My Child Action 1 ")
+    action.LeaveAction()
+    
+    rootAction.EnterAction("My Child Action 2")
+    
+    rootAction.LeaveAction()
+    session.End()
+    
 }
 
 ```
