@@ -14,6 +14,7 @@ type Action interface {
 	// TraceWebRequest(string)
 	EnterAction(string) Action
 	LeaveAction()
+	LeaveActionAt(int)
 }
 
 type action struct {
@@ -85,6 +86,19 @@ func (a *rootAction) LeaveAction() {
 
 }
 
+func (a *rootAction) LeaveActionAt(endTime int) {
+	a.action.logger.Debug("RootAction.leaveActionAt()")
+
+	for len(a.openChildActions) > 0 {
+		for _, child := range a.openChildActions {
+			child.LeaveActionAt(endTime)
+		}
+	}
+
+	a.action.LeaveActionAt(endTime)
+
+}
+
 func (a *rootAction) EnterAction(actionName string) Action {
 	a.action.logger.Debugf("EnterAction(%s)\n", actionName)
 
@@ -99,6 +113,17 @@ func (a *action) LeaveAction() {
 	a.logger.Debugf("Action(%s).leaveAction()", a.name)
 
 	a.endTime = a.beacon.getCurrentTimestamp()
+	a.endSequenceNo = a.beacon.createSequenceNumber()
+
+	a.beacon.addAction(a)
+
+	delete(a.thisLevelActions, a.ID)
+
+}
+func (a *action) LeaveActionAt(endTime int) {
+	a.logger.Debugf("Action(%s).LeaveActionAt()", a.name)
+
+	a.endTime = endTime
 	a.endSequenceNo = a.beacon.createSequenceNumber()
 
 	a.beacon.addAction(a)

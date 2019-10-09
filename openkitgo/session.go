@@ -10,6 +10,7 @@ type Session interface {
 	// reportCrash(string, string, string)
 	// traceWebRequest(string)
 	End()
+	EndAt(int)
 	finishSession()
 
 	isBeaconConfigurationSet() bool
@@ -112,6 +113,21 @@ func (s *session) End() {
 	s.logger.Debug("Session.end()")
 
 	s.endTime = s.beacon.getCurrentTimestamp()
+
+	for len(s.openRootActions) != 0 {
+		for _, a := range s.openRootActions {
+			a.LeaveAction()
+		}
+	}
+
+	s.beacon.endSession(s)
+	s.beaconSender.finishSession(s)
+}
+
+func (s *session) EndAt(endTime int) {
+	s.logger.Debug("Session.end()")
+
+	s.endTime = endTime
 
 	for len(s.openRootActions) != 0 {
 		for _, a := range s.openRootActions {

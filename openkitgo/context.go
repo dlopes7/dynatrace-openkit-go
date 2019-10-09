@@ -44,7 +44,7 @@ func (b *BeaconSenderContext) executeCurrentState() {
 	b.currentState.execute(b)
 
 	if b.nextState != nil && b.nextState != b.currentState {
-		b.logger.Infof("executeCurrentState() - State change from %s to %s", b.currentState.String(), b.nextState.String())
+		b.logger.Debugf("executeCurrentState() - State change from %s to %s", b.currentState.String(), b.nextState.String())
 		b.currentState = b.nextState
 	}
 }

@@ -111,7 +111,7 @@ type beaconSendingCaptureOnState struct{}
 
 func (b *beaconSendingCaptureOnState) execute(context *BeaconSenderContext) {
 	context.sleep(1 * time.Second)
-	context.logger.Info("Executed state beaconSendingCaptureOnState")
+	context.logger.Debug("Executed state beaconSendingCaptureOnState")
 
 	// Send all new Sessions (Beacon Configure not set yet)
 	newSessionsResponse := b.sendNewSessionRequests(context)
@@ -307,7 +307,7 @@ func (beaconSendingTerminalState) execute(context *BeaconSenderContext) {
 	// TODO - Implement beaconSendingTerminalState
 	context.nextState = &beaconSendingCaptureOnState{}
 
-	context.logger.Info("Executed state beaconSendingTerminalState")
+	context.logger.Debug("Executed state beaconSendingTerminalState")
 
 }
 

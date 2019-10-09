@@ -31,7 +31,7 @@ func NewBeaconSender(logger logging.Logger, config *Configuration, client *HttpC
 func (b *BeaconSender) initialize() {
 
 	go func() {
-		b.logger.Info("BeaconSender goroutine initialized")
+		b.logger.Debug("BeaconSender goroutine initialized")
 		for !b.context.isTerminalState {
 			b.context.executeCurrentState()
 		}
