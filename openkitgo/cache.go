@@ -1,7 +1,7 @@
 package openkitgo
 
 import (
-	"github.com/op/go-logging"
+	log "github.com/sirupsen/logrus"
 	"strings"
 	"sync"
 )
@@ -38,7 +38,7 @@ type BeaconCache interface {
 }
 
 type beaconCache struct {
-	logger          *logging.Logger
+	log             *log.Logger
 	globalCacheLock sync.Mutex
 
 	cacheSizeInBytes int
@@ -48,10 +48,10 @@ type beaconCache struct {
 	changed   bool
 }
 
-func NewBeaconCache(logger *logging.Logger) *beaconCache {
+func NewBeaconCache(log *log.Logger) *beaconCache {
 	b := new(beaconCache)
 
-	b.logger = logger
+	b.log = log
 	b.beacons = make(map[int]*beaconCacheEntry)
 
 	return b
@@ -63,7 +63,7 @@ func (b *beaconCache) addObserver(observer Observer) {
 }
 
 func (b *beaconCache) addEventData(beaconID int, timestamp int, data string) {
-	b.logger.Debugf("addEventData(sn: %d, timestamp: %d, data: %s)", beaconID, timestamp, data)
+	b.log.Debugf("addEventData(sn: %d, timestamp: %d, data: %s)", beaconID, timestamp, data)
 
 	entry := b.getCachedEntryOrInsert(beaconID)
 	record := &beaconCacheRecord{
@@ -82,7 +82,7 @@ func (b *beaconCache) addEventData(beaconID int, timestamp int, data string) {
 }
 
 func (b *beaconCache) deleteCacheEntry(beaconID int) {
-	b.logger.Debugf("deleteCacheEntry(sn=%d)", beaconID)
+	b.log.Debugf("deleteCacheEntry(sn=%d)", beaconID)
 
 	var entry *beaconCacheEntry
 
@@ -192,7 +192,7 @@ func (b *beaconCache) getNextBeaconChunk(beaconID int, chunkPrefix string, maxSi
 }
 
 func (b *beaconCache) addActionData(beaconID int, timestamp int, data string) {
-	b.logger.Debugf("addActionData(sn=%d, timestamp=%d, data=%s)\n", beaconID, timestamp, data)
+	b.log.Debugf("addActionData(sn=%d, timestamp=%d, data=%s)\n", beaconID, timestamp, data)
 
 	entry := b.getCachedEntryOrInsert(beaconID)
 	record := &beaconCacheRecord{

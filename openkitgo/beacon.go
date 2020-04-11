@@ -1,23 +1,23 @@
 package openkitgo
 
 import (
-	"github.com/op/go-logging"
+	log "github.com/sirupsen/logrus"
 	"strconv"
 	"strings"
 	"sync/atomic"
 )
 
 type BeaconSender struct {
-	logger  logging.Logger
+	log     log.Logger
 	context BeaconSenderContext
 }
 
-func NewBeaconSender(logger logging.Logger, config *Configuration, client *HttpClient) *BeaconSender {
+func NewBeaconSender(log log.Logger, config *Configuration, client *HttpClient) *BeaconSender {
 	b := new(BeaconSender)
-	b.logger = logger
+	b.log = log
 
 	b.context = BeaconSenderContext{
-		logger:       logger,
+		log:          log,
 		config:       config,
 		httpClient:   client,
 		shutdown:     false,
@@ -31,7 +31,7 @@ func NewBeaconSender(logger logging.Logger, config *Configuration, client *HttpC
 func (b *BeaconSender) initialize() {
 
 	go func() {
-		b.logger.Debug("BeaconSender goroutine initialized")
+		b.log.Debug("BeaconSender goroutine initialized")
 		for !b.context.isTerminalState {
 			b.context.executeCurrentState()
 		}
@@ -40,14 +40,14 @@ func (b *BeaconSender) initialize() {
 }
 
 func (b *BeaconSender) startSession(session *session) {
-	b.logger.Debug("BeaconSender startSession()")
+	b.log.Debug("BeaconSender startSession()")
 
 	b.context.startSession(session)
 
 }
 
 func (b *BeaconSender) finishSession(session Session) {
-	b.logger.Debug("BeaconSender finishSession()")
+	b.log.Debug("BeaconSender finishSession()")
 
 	b.context.finishSession(session)
 
@@ -115,7 +115,7 @@ const (
 )
 
 type Beacon struct {
-	logger             logging.Logger
+	log                log.Logger
 	beaconCache        *beaconCache
 	config             *Configuration
 	clientIPAddress    string
@@ -130,12 +130,12 @@ type Beacon struct {
 	immutableBasicBeaconData string
 }
 
-func NewBeacon(logger logging.Logger, beaconCache *beaconCache, config *Configuration, clientIPAddress string) *Beacon {
+func NewBeacon(log log.Logger, beaconCache *beaconCache, config *Configuration, clientIPAddress string) *Beacon {
 	b := new(Beacon)
 
 	b.sessionNumber = b.config.createSessionNumber()
 	b.sessionStartTime = b.config.makeTimestamp()
-	b.logger = logger
+	b.log = log
 	b.beaconCache = beaconCache
 	b.config = config
 	b.clientIPAddress = clientIPAddress

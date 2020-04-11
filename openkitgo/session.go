@@ -1,7 +1,7 @@
 package openkitgo
 
 import (
-	"github.com/op/go-logging"
+	log "github.com/sirupsen/logrus"
 )
 
 type Session interface {
@@ -32,7 +32,7 @@ type session struct {
 
 	beaconSender *BeaconSender
 	beacon       *Beacon
-	logger       *logging.Logger
+	log          *log.Logger
 
 	openRootActions map[int]Action
 
@@ -44,10 +44,10 @@ type session struct {
 	sessionNumber int
 }
 
-func newSession(logger *logging.Logger, beaconSender *BeaconSender, beacon *Beacon) Session {
+func newSession(log *log.Logger, beaconSender *BeaconSender, beacon *Beacon) Session {
 	s := new(session)
 
-	s.logger = logger
+	s.log = log
 	s.beaconSender = beaconSender
 	s.beacon = beacon
 	s.ID = s.beacon.config.createSessionNumber()
@@ -65,9 +65,9 @@ func (s *session) clearCapturedData() {
 }
 
 func (s *session) EnterAction(actionName string) Action {
-	s.logger.Debugf("enterAction(%s)", actionName)
+	s.log.Debugf("enterAction(%s)", actionName)
 
-	return newRootAction(s.logger, s.beacon, actionName, s.openRootActions)
+	return newRootAction(s.log, s.beacon, actionName, s.openRootActions)
 
 }
 
@@ -105,12 +105,12 @@ func (s *session) sendBeacon(httpClient *HttpClient) *StatusResponse {
 }
 
 func (s *session) IdentifyUser(userTag string) {
-	s.logger.Debugf("identifyUser(%s)\n", userTag)
+	s.log.Debugf("identifyUser(%s)\n", userTag)
 	s.beacon.identifyUser(userTag)
 }
 
 func (s *session) End() {
-	s.logger.Debug("Session.end()")
+	s.log.Debug("Session.end()")
 
 	s.endTime = s.beacon.getCurrentTimestamp()
 
@@ -125,7 +125,7 @@ func (s *session) End() {
 }
 
 func (s *session) EndAt(endTime int) {
-	s.logger.Debug("Session.end()")
+	s.log.Debug("Session.end()")
 
 	s.endTime = endTime
 

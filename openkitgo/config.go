@@ -83,7 +83,7 @@ func (c *Configuration) makeTimestamp() int {
 }
 
 func (c *Configuration) updateSettings(statusResponse *StatusResponse) {
-	statusResponse.logger.Debugf("Registering new config properties %+v", statusResponse)
+	statusResponse.log.Debugf("Registering new config properties %+v", statusResponse)
 
 	c.capture = statusResponse.capture
 

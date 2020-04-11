@@ -111,7 +111,6 @@ type beaconSendingCaptureOnState struct{}
 
 func (b *beaconSendingCaptureOnState) execute(context *BeaconSenderContext) {
 	context.sleep(1 * time.Second)
-	context.logger.Debug("Executed state beaconSendingCaptureOnState")
 
 	// Send all new Sessions (Beacon Configure not set yet)
 	newSessionsResponse := b.sendNewSessionRequests(context)
@@ -192,7 +191,7 @@ func (b *beaconSendingCaptureOnState) sendFinishedSessions(context *BeaconSender
 	var statusResponse *StatusResponse
 
 	for _, finishedSession := range context.getAllFinishedAndConfiguredSessions() {
-		context.logger.Debug("Found finished session! Sending!")
+		context.log.Debug("Found finished session! Sending!")
 
 		if finishedSession.isDataSendingAllowed() {
 			context.removeSession(finishedSession)
@@ -214,7 +213,7 @@ func (b *beaconSendingCaptureOnState) sendOpenSessions(context *BeaconSenderCont
 	// TODO - Implement setLastOpenSessionBeaconSendTime
 
 	for _, openSession := range context.getAllOpenAndConfiguredSessions() {
-		context.logger.Debug("Found opened session! Sending? ", openSession.isDataSendingAllowed())
+		context.log.Debug("Found opened session! Sending? ", openSession.isDataSendingAllowed())
 
 		if openSession.isDataSendingAllowed() {
 			statusResponse = openSession.sendBeacon(context.httpClient)
@@ -307,7 +306,7 @@ func (beaconSendingTerminalState) execute(context *BeaconSenderContext) {
 	// TODO - Implement beaconSendingTerminalState
 	context.nextState = &beaconSendingCaptureOnState{}
 
-	context.logger.Debug("Executed state beaconSendingTerminalState")
+	context.log.Debug("Executed state beaconSendingTerminalState")
 
 }
 

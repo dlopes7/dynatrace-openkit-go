@@ -3,7 +3,7 @@ package openkitgo
 import (
 	"bytes"
 	"compress/gzip"
-	"github.com/op/go-logging"
+	log "github.com/sirupsen/logrus"
 	"io/ioutil"
 	"net/http"
 	"strconv"
@@ -44,13 +44,13 @@ type HttpClient struct {
 	monitorURL    string
 	newSessionURL string
 	serverID      int
-	logger        logging.Logger
+	log           log.Logger
 }
 
-func NewHttpClient(logger logging.Logger, configuration HTTPClientConfiguration) *HttpClient {
+func NewHttpClient(log log.Logger, configuration HTTPClientConfiguration) *HttpClient {
 	httpClient := new(HttpClient)
 
-	httpClient.logger = logger
+	httpClient.log = log
 	httpClient.serverID = configuration.serverID
 	httpClient.monitorURL = buildMonitorURL(configuration.baseURL, configuration.applicationID, httpClient.serverID)
 	httpClient.newSessionURL = buildNewSessionURL(configuration.baseURL, configuration.applicationID, httpClient.serverID)
@@ -85,10 +85,10 @@ func buildNewSessionURL(baseURL string, applicationID string, serverID int) stri
 }
 
 func (c *HttpClient) sendStatusRequest() *StatusResponse {
-	c.logger.Debug("sendStatusRequest()")
+	c.log.Debug("sendStatusRequest()")
 	response, err := c.sendRequest(REQUESTTYPE_STATUS, c.monitorURL, nil, nil, "GET")
 	if err != nil {
-		c.logger.Errorf("Error getting response for sendNewSessionRequest: %s\n", err.Error())
+		c.log.Errorf("Error getting response for sendNewSessionRequest: %s\n", err.Error())
 		return nil
 	}
 	return response
@@ -96,10 +96,10 @@ func (c *HttpClient) sendStatusRequest() *StatusResponse {
 }
 
 func (c *HttpClient) sendNewSessionRequest() *StatusResponse {
-	c.logger.Debug("sendNewSessionRequest()")
+	c.log.Debug("sendNewSessionRequest()")
 	response, err := c.sendRequest(REQUEST_TYPE_NEW_SESSION, c.newSessionURL, nil, nil, "GET")
 	if err != nil {
-		c.logger.Errorf("Error getting response for sendNewSessionRequest: %s\n", err.Error())
+		c.log.Errorf("Error getting response for sendNewSessionRequest: %s\n", err.Error())
 		return nil
 	}
 
@@ -107,10 +107,10 @@ func (c *HttpClient) sendNewSessionRequest() *StatusResponse {
 }
 
 func (c *HttpClient) sendBeaconRequest(clientIPAddress string, body []byte) *StatusResponse {
-	c.logger.Debugf("sendBeaconRequest() - Body: %s\n", body)
+	c.log.Debugf("sendBeaconRequest() - Body: %s\n", body)
 	response, err := c.sendRequest(REQUEST_TYPE_BEACON, c.monitorURL, &clientIPAddress, body, "POST")
 	if err != nil {
-		c.logger.Errorf("Error getting response for sendBeaconRequest: %s\n", err.Error())
+		c.log.Errorf("Error getting response for sendBeaconRequest: %s\n", err.Error())
 		return nil
 	}
 
@@ -118,7 +118,7 @@ func (c *HttpClient) sendBeaconRequest(clientIPAddress string, body []byte) *Sta
 }
 
 func (c *HttpClient) sendRequest(requestType string, url string, clientIPAddress *string, data []byte, method string) (*StatusResponse, error) {
-	c.logger.Debugf("sendRequest() - HTTP %s Request: %s", requestType, url)
+	c.log.Debugf("sendRequest() - HTTP %s Request: %s", requestType, url)
 
 	client := http.Client{}
 	var buf bytes.Buffer
@@ -127,11 +127,11 @@ func (c *HttpClient) sendRequest(requestType string, url string, clientIPAddress
 		g := gzip.NewWriter(&buf)
 
 		if _, err := g.Write(data); err != nil {
-			c.logger.Error(err.Error())
+			c.log.Error(err.Error())
 			return nil, err
 		}
 		if err := g.Close(); err != nil {
-			c.logger.Error(err.Error())
+			c.log.Error(err.Error())
 			return nil, err
 		}
 
@@ -139,7 +139,7 @@ func (c *HttpClient) sendRequest(requestType string, url string, clientIPAddress
 
 	request, err := http.NewRequest(method, url, &buf)
 	if err != nil {
-		c.logger.Error(err.Error())
+		c.log.Error(err.Error())
 		return nil, err
 	}
 
@@ -149,7 +149,7 @@ func (c *HttpClient) sendRequest(requestType string, url string, clientIPAddress
 
 	resp, err := client.Do(request)
 	if err != nil {
-		c.logger.Error(err.Error())
+		c.log.Error(err.Error())
 		return nil, err
 	}
 	defer resp.Body.Close()
@@ -160,7 +160,7 @@ func (c *HttpClient) sendRequest(requestType string, url string, clientIPAddress
 		bodyString = string(bodyBytes)
 	}
 
-	return NewStatusResponse(c.logger, bodyString, resp.StatusCode, resp.Header), nil
+	return NewStatusResponse(c.log, bodyString, resp.StatusCode, resp.Header), nil
 
 }
 

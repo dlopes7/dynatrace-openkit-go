@@ -1,7 +1,7 @@
 package openkitgo
 
 import (
-	"github.com/op/go-logging"
+	log "github.com/sirupsen/logrus"
 )
 
 type Action interface {
@@ -20,7 +20,7 @@ type Action interface {
 type action struct {
 
 	// These belong to all Actions
-	logger *logging.Logger
+	log *log.Logger
 
 	ID   int
 	name string
@@ -42,11 +42,11 @@ type rootAction struct {
 	openChildActions map[int]Action
 }
 
-// 	return NewAction(s.logger, s.beacon, actionName, s.openRootActions)
-func newAction(logger *logging.Logger, beacon *Beacon, actionName string, parentAction *action, thisLevelActions map[int]Action) *action {
+// 	return NewAction(s.log, s.beacon, actionName, s.openRootActions)
+func newAction(log *log.Logger, beacon *Beacon, actionName string, parentAction *action, thisLevelActions map[int]Action) *action {
 	a := new(action)
 
-	a.logger = logger
+	a.log = log
 	a.beacon = beacon
 	a.name = actionName
 	a.parentAction = parentAction
@@ -62,19 +62,19 @@ func newAction(logger *logging.Logger, beacon *Beacon, actionName string, parent
 	return a
 }
 
-func newRootAction(logger *logging.Logger, beacon *Beacon, actionName string, openChildActions map[int]Action) Action {
+func newRootAction(log *log.Logger, beacon *Beacon, actionName string, openChildActions map[int]Action) Action {
 
 	a := new(rootAction)
 
 	a.openChildActions = openChildActions
-	a.action = newAction(logger, beacon, actionName, nil, openChildActions)
+	a.action = newAction(log, beacon, actionName, nil, openChildActions)
 
 	return a
 
 }
 
 func (a *rootAction) LeaveAction() {
-	a.action.logger.Debug("RootAction.leaveAction()")
+	a.action.log.Debugf("RootAction.leaveAction()")
 
 	for len(a.openChildActions) > 0 {
 		for _, child := range a.openChildActions {
@@ -87,7 +87,7 @@ func (a *rootAction) LeaveAction() {
 }
 
 func (a *rootAction) LeaveActionAt(endTime int) {
-	a.action.logger.Debug("RootAction.leaveActionAt()")
+	a.action.log.Debug("RootAction.leaveActionAt()")
 
 	for len(a.openChildActions) > 0 {
 		for _, child := range a.openChildActions {
@@ -100,17 +100,17 @@ func (a *rootAction) LeaveActionAt(endTime int) {
 }
 
 func (a *rootAction) EnterAction(actionName string) Action {
-	a.action.logger.Debugf("EnterAction(%s)\n", actionName)
+	a.action.log.Debugf("EnterAction(%s)\n", actionName)
 
 	if a.action.endTime == -1 {
-		return newAction(a.action.logger, a.action.beacon, actionName, a.action, a.openChildActions)
+		return newAction(a.action.log, a.action.beacon, actionName, a.action, a.openChildActions)
 	}
 
 	return nil
 }
 
 func (a *action) LeaveAction() {
-	a.logger.Debugf("Action(%s).leaveAction()", a.name)
+	a.log.Debugf("Action(%s).leaveAction()", a.name)
 
 	a.endTime = a.beacon.getCurrentTimestamp()
 	a.endSequenceNo = a.beacon.createSequenceNumber()
@@ -121,7 +121,7 @@ func (a *action) LeaveAction() {
 
 }
 func (a *action) LeaveActionAt(endTime int) {
-	a.logger.Debugf("Action(%s).LeaveActionAt()", a.name)
+	a.log.Debugf("Action(%s).LeaveActionAt()", a.name)
 
 	a.endTime = endTime
 	a.endSequenceNo = a.beacon.createSequenceNumber()

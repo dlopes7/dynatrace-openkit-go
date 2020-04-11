@@ -1,7 +1,7 @@
 package openkitgo
 
 import (
-	"github.com/op/go-logging"
+	log "github.com/sirupsen/logrus"
 	"net/url"
 	"strconv"
 	"strings"
@@ -19,7 +19,7 @@ const (
 )
 
 type StatusResponse struct {
-	logger       logging.Logger
+	log          log.Logger
 	responseCode int
 	headers      map[string][]string
 
@@ -38,10 +38,10 @@ type KeyValuePair struct {
 	value string
 }
 
-func NewStatusResponse(logger logging.Logger, response string, responseCode int, headers map[string][]string) *StatusResponse {
+func NewStatusResponse(log log.Logger, response string, responseCode int, headers map[string][]string) *StatusResponse {
 
 	s := new(StatusResponse)
-	s.logger = logger
+	s.log = log
 	s.responseCode = responseCode
 	s.headers = headers
 
@@ -53,7 +53,7 @@ func NewStatusResponse(logger logging.Logger, response string, responseCode int,
 	s.maxBeaconSize = -1
 	s.multiplicity = 1
 
-	logger.Debugf("NewStatusResponse: %s", response)
+	log.Debugf("NewStatusResponse: %s", response)
 
 	s.parseResponse(response)
 	return s

@@ -1,12 +1,12 @@
 package openkitgo
 
 import (
-	"github.com/op/go-logging"
+	log "github.com/sirupsen/logrus"
 	"time"
 )
 
 type BeaconSenderContext struct {
-	logger     logging.Logger
+	log        log.Logger
 	httpClient *HttpClient
 	config     *Configuration
 
@@ -44,7 +44,7 @@ func (b *BeaconSenderContext) executeCurrentState() {
 	b.currentState.execute(b)
 
 	if b.nextState != nil && b.nextState != b.currentState {
-		b.logger.Debugf("executeCurrentState() - State change from %s to %s", b.currentState.String(), b.nextState.String())
+		b.log.Debugf("executeCurrentState() - State change from %s to %s", b.currentState.String(), b.nextState.String())
 		b.currentState = b.nextState
 	}
 }

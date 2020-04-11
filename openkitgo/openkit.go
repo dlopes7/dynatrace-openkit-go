@@ -1,7 +1,7 @@
 package openkitgo
 
 import (
-	"github.com/op/go-logging"
+	log "github.com/sirupsen/logrus"
 )
 
 type openKitType int
@@ -21,16 +21,16 @@ type openkit struct {
 	beaconCache   *beaconCache
 	beaconSender  *BeaconSender
 	configuration *Configuration
-	logger        logging.Logger
+	log           log.Logger
 }
 
 func (o *openkit) CreateSession(clientIPAddress string) Session {
 
-	o.logger.Debugf("Creating session with IP address %s\n", clientIPAddress)
+	o.log.Debugf("Creating session with IP address %s\n", clientIPAddress)
 
-	beacon := NewBeacon(o.logger, o.beaconCache, o.configuration, clientIPAddress)
+	beacon := NewBeacon(o.log, o.beaconCache, o.configuration, clientIPAddress)
 
-	return newSession(&o.logger, o.beaconSender, beacon)
+	return newSession(&o.log, o.beaconSender, beacon)
 }
 
 func (o *openkit) initialize() {
@@ -38,20 +38,19 @@ func (o *openkit) initialize() {
 }
 
 type OpenKitBuilder interface {
-	WithLogLevel(int) OpenKitBuilder
-	WithLogger(logging.Logger) OpenKitBuilder
+	WithLogLevel(log.Level) OpenKitBuilder
+	WithLogger(log.Logger) OpenKitBuilder
 	WithApplicationName(string) OpenKitBuilder
 	WithApplicationVersion(string) OpenKitBuilder
 	WithOperatingSystem(string) OpenKitBuilder
 	WithManufacturer(string) OpenKitBuilder
 	WithModelID(string) OpenKitBuilder
-
 	Build() OpenKit
 }
 
 type openKitBuilder struct {
-	logLevel int
-	logger   logging.Logger
+	logLevel log.Level
+	log      log.Logger
 
 	endpointURL   string
 	applicationID string
@@ -73,13 +72,13 @@ func NewOpenKitBuilder(endpointURL string, applicationID string, deviceID int) O
 	}
 }
 
-func (ob *openKitBuilder) WithLogLevel(logLevel int) OpenKitBuilder {
+func (ob *openKitBuilder) WithLogLevel(logLevel log.Level) OpenKitBuilder {
 	ob.logLevel = logLevel
 	return ob
 }
 
-func (ob *openKitBuilder) WithLogger(logger logging.Logger) OpenKitBuilder {
-	ob.logger = logger
+func (ob *openKitBuilder) WithLogger(log log.Logger) OpenKitBuilder {
+	ob.log = log
 	return ob
 }
 
@@ -112,18 +111,18 @@ func (ob *openKitBuilder) Build() OpenKit {
 	// TODO - Set Defaults manually here if they were not set?
 
 	c := NewConfiguration(ob.endpointURL, ob.applicationName, ob.applicationID, ob.applicationVersion, ob.deviceID, ob.operatingSystem, ob.manufacturer, ob.modelID)
-	client := NewHttpClient(ob.logger, *c.httpClientConfiguration)
+	client := NewHttpClient(ob.log, *c.httpClientConfiguration)
 
-	b := NewBeaconSender(ob.logger, c, client)
+	b := NewBeaconSender(ob.log, c, client)
 
 	openkit := &openkit{
-		beaconCache:   NewBeaconCache(&ob.logger),
+		beaconCache:   NewBeaconCache(&ob.log),
 		beaconSender:  b,
 		configuration: c,
-		logger:        ob.logger,
+		log:           ob.log,
 	}
 
-	openkit.logger.Debug("Initializing OpenKit...")
+	openkit.log.Debug("Initializing OpenKit...")
 
 	openkit.initialize()
 
