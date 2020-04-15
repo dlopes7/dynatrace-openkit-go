@@ -91,9 +91,7 @@ func (s *StatusResponse) parseResponse(response string) {
 		} else if RESPONSE_KEY_MULTIPLICITY == kv.key {
 			value, _ := strconv.Atoi(kv.value)
 			s.multiplicity = value
-
 		}
-
 	}
 
 }

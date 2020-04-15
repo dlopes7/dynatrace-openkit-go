@@ -2,15 +2,18 @@ package openkitgo
 
 import (
 	log "github.com/sirupsen/logrus"
+	"time"
 )
 
 type Session interface {
 	EnterAction(string) Action
+	EnterActionAt(string, time.Time) Action
 	IdentifyUser(string)
 	// reportCrash(string, string, string)
-	// traceWebRequest(string)
+	TraceWebRequest(string) *WebRequestTracer
+	TraceWebRequestAt(string, time.Time) *WebRequestTracer
 	End()
-	EndAt(int)
+	EndAt(time.Time)
 	finishSession()
 
 	isBeaconConfigurationSet() bool
@@ -71,6 +74,13 @@ func (s *session) EnterAction(actionName string) Action {
 
 }
 
+func (s *session) EnterActionAt(actionName string, timestamp time.Time) Action {
+	s.log.Debugf("enterAction(%s)", actionName)
+
+	return newRootActionAt(s.log, s.beacon, actionName, s.openRootActions, timestamp)
+
+}
+
 func (s *session) finishSession() {
 	s.sessionFinished = true
 }
@@ -124,10 +134,10 @@ func (s *session) End() {
 	s.beaconSender.finishSession(s)
 }
 
-func (s *session) EndAt(endTime int) {
+func (s *session) EndAt(endTime time.Time) {
 	s.log.Debug("Session.end()")
 
-	s.endTime = endTime
+	s.endTime = int(endTime.UnixNano() / int64(time.Millisecond))
 
 	for len(s.openRootActions) != 0 {
 		for _, a := range s.openRootActions {
@@ -137,4 +147,20 @@ func (s *session) EndAt(endTime int) {
 
 	s.beacon.endSession(s)
 	s.beaconSender.finishSession(s)
+}
+
+func (s *session) getActionID() int {
+	return 0
+}
+
+func (s *session) TraceWebRequest(url string) *WebRequestTracer {
+	// TODO : Store in children
+	w := NewWebRequestTracer(s.log, s, url, s.beacon)
+	return w
+}
+
+func (s *session) TraceWebRequestAt(url string, timestamp time.Time) *WebRequestTracer {
+	// TODO : Store in children
+	w := NewWebRequestTracerAt(s.log, s, url, s.beacon, timestamp)
+	return w
 }

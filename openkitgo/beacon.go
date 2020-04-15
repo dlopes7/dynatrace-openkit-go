@@ -1,10 +1,12 @@
 package openkitgo
 
 import (
+	"fmt"
 	log "github.com/sirupsen/logrus"
 	"strconv"
 	"strings"
 	"sync/atomic"
+	"time"
 )
 
 type BeaconSender struct {
@@ -135,6 +137,40 @@ func NewBeacon(log log.Logger, beaconCache *beaconCache, config *Configuration, 
 
 	b.sessionNumber = b.config.createSessionNumber()
 	b.sessionStartTime = b.config.makeTimestamp()
+	b.log = log
+	b.beaconCache = beaconCache
+	b.config = config
+	b.clientIPAddress = clientIPAddress
+	b.beaconConfiguration = *config.beaconConfiguration
+
+	b.immutableBasicBeaconData = b.createImmutableBasicBeaconData()
+
+	return b
+}
+
+func NewBeaconWithTimeAndDevice(log log.Logger, beaconCache *beaconCache, config *Configuration, clientIPAddress string, timestamp time.Time, deviceID string) *Beacon {
+	b := new(Beacon)
+
+	b.sessionNumber = b.config.createSessionNumber()
+	b.sessionStartTime = int(timestamp.UnixNano() / int64(time.Millisecond))
+	b.log = log
+	b.beaconCache = beaconCache
+	b.config = config
+	b.config.deviceID = deviceID
+	b.clientIPAddress = clientIPAddress
+	b.beaconConfiguration = *config.beaconConfiguration
+
+	b.immutableBasicBeaconData = b.createImmutableBasicBeaconData()
+
+	return b
+
+}
+
+func NewBeaconWithTime(log log.Logger, beaconCache *beaconCache, config *Configuration, clientIPAddress string, timestamp time.Time) *Beacon {
+	b := new(Beacon)
+
+	b.sessionNumber = b.config.createSessionNumber()
+	b.sessionStartTime = int(timestamp.UnixNano() / int64(time.Millisecond))
 	b.log = log
 	b.beaconCache = beaconCache
 	b.config = config
@@ -372,5 +408,62 @@ func (b *Beacon) identifyUser(userTag string) {
 	b.addKeyValuePair(&sb, BEACON_KEY_TIME_0, strconv.Itoa(b.getTimeSinceSessionStartTime(timestamp)))
 
 	b.addEventData(timestamp, &sb)
+
+}
+
+func (b *Beacon) createTag(parentID int, tracerSeqNo int) string {
+
+	var sb strings.Builder
+	serverID := b.config.httpClientConfiguration.serverID
+
+	sb.WriteString(TAG_PREFIX)
+	sb.WriteString(fmt.Sprintf("_%d", PROTOCOL_VERSION))
+	sb.WriteString(fmt.Sprintf("_%d", serverID))
+	sb.WriteString(fmt.Sprintf("_%s", b.config.deviceID))
+	sb.WriteString(fmt.Sprintf("_%d", b.sessionNumber))
+	sb.WriteString(fmt.Sprintf("_%d", b.nextSequenceNumber))
+	sb.WriteString(fmt.Sprintf("_%s", encodeWithReservedChars(b.config.applicationID, CHARSET, nil)))
+	sb.WriteString(fmt.Sprintf("_%d", parentID))
+	sb.WriteString(fmt.Sprintf("_%d", 1))
+	sb.WriteString(fmt.Sprintf("_%d", tracerSeqNo))
+
+	return sb.String()
+
+}
+
+/*
+       StringBuilder eventBuilder = new StringBuilder();
+
+       buildBasicEventData(eventBuilder, EventType.WEB_REQUEST, webRequestTracer.getURL());
+
+       addKeyValuePair(eventBuilder, BEACON_KEY_PARENT_ACTION_ID, parentActionID);
+       addKeyValuePair(eventBuilder, BEACON_KEY_START_SEQUENCE_NUMBER, webRequestTracer.getStartSequenceNo());
+       addKeyValuePair(eventBuilder, BEACON_KEY_TIME_0, getTimeSinceSessionStartTime(webRequestTracer.getStartTime()));
+       addKeyValuePair(eventBuilder, BEACON_KEY_END_SEQUENCE_NUMBER, webRequestTracer.getEndSequenceNo());
+       addKeyValuePair(eventBuilder, BEACON_KEY_TIME_1, webRequestTracer.getEndTime() - webRequestTracer.getStartTime());
+
+       addKeyValuePairIfNotNegative(eventBuilder, BEACON_KEY_WEBREQUEST_BYTES_SENT, webRequestTracer.getBytesSent());
+       addKeyValuePairIfNotNegative(eventBuilder, BEACON_KEY_WEBREQUEST_BYTES_RECEIVED, webRequestTracer.getBytesReceived());
+       addKeyValuePairIfNotNegative(eventBuilder, BEACON_KEY_WEBREQUEST_RESPONSECODE, webRequestTracer.getResponseCode());
+
+       addEventData(webRequestTracer.getStartTime(), eventBuilder);
+   }
+*/
+func (b *Beacon) addWebRequest(parentID int, w *WebRequestTracer) {
+	startTime := int(w.startTime.UnixNano() / int64(time.Millisecond))
+	endTime := int(w.endTime.UnixNano() / int64(time.Millisecond))
+
+	var sb strings.Builder
+	b.buildBasicEventData(&sb, EventTypeWEBREQUEST, w.url)
+	b.addKeyValuePair(&sb, BEACON_KEY_PARENT_ACTION_ID, strconv.Itoa(parentID))
+	b.addKeyValuePair(&sb, BEACON_KEY_START_SEQUENCE_NUMBER, strconv.Itoa(w.startSequenceNo))
+	b.addKeyValuePair(&sb, BEACON_KEY_TIME_0, strconv.Itoa(b.getTimeSinceSessionStartTime(startTime)))
+	b.addKeyValuePair(&sb, BEACON_KEY_END_SEQUENCE_NUMBER, strconv.Itoa(w.endSequenceNo))
+	b.addKeyValuePair(&sb, BEACON_KEY_TIME_1, strconv.Itoa(endTime-startTime))
+	b.addKeyValuePair(&sb, BEACON_KEY_WEBREQUEST_BYTES_SENT, strconv.Itoa(w.BytesSent))
+	b.addKeyValuePair(&sb, BEACON_KEY_WEBREQUEST_BYTES_RECEIVED, strconv.Itoa(w.BytesReceived))
+	b.addKeyValuePair(&sb, BEACON_KEY_WEBREQUEST_RESPONSECODE, strconv.Itoa(w.ResponseCode))
+
+	b.addEventData(startTime, &sb)
 
 }

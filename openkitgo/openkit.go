@@ -2,6 +2,7 @@ package openkitgo
 
 import (
 	log "github.com/sirupsen/logrus"
+	"time"
 )
 
 type openKitType int
@@ -11,8 +12,14 @@ const (
 	OpenKitTypeDYNATRACE openKitType = 1
 )
 
+type OpenKitComposite interface {
+	getActionID() int
+}
+
 type OpenKit interface {
 	CreateSession(string) Session
+	CreateSessionWithTime(string, time.Time) Session
+	CreateSessionWithTimeAndDevice(string, time.Time, string) Session
 	// waitForInitCompletion(int) bool
 	// isInitialized() bool
 }
@@ -29,6 +36,24 @@ func (o *openkit) CreateSession(clientIPAddress string) Session {
 	o.log.Debugf("Creating session with IP address %s\n", clientIPAddress)
 
 	beacon := NewBeacon(o.log, o.beaconCache, o.configuration, clientIPAddress)
+
+	return newSession(&o.log, o.beaconSender, beacon)
+}
+
+func (o *openkit) CreateSessionWithTime(clientIPAddress string, timestamp time.Time) Session {
+
+	o.log.Debugf("Creating session with IP address %s\n", clientIPAddress)
+
+	beacon := NewBeaconWithTime(o.log, o.beaconCache, o.configuration, clientIPAddress, timestamp)
+
+	return newSession(&o.log, o.beaconSender, beacon)
+}
+
+func (o *openkit) CreateSessionWithTimeAndDevice(clientIPAddress string, timestamp time.Time, deviceID string) Session {
+
+	o.log.Debugf("Creating session with IP address %s\n", clientIPAddress)
+
+	beacon := NewBeaconWithTimeAndDevice(o.log, o.beaconCache, o.configuration, clientIPAddress, timestamp, deviceID)
 
 	return newSession(&o.log, o.beaconSender, beacon)
 }
