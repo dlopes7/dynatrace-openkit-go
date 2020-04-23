@@ -11,6 +11,7 @@ type Action interface {
 	// ReportIntValue(string, int)
 	// ReportDoubleValue(string, float64)
 	// ReportStringValue(string, string)
+	ReportStringValueAt(string, string, time.Time)
 	// ReportError(string, int, string)
 	TraceWebRequest(string) *WebRequestTracer
 	TraceWebRequestAt(string, time.Time) *WebRequestTracer
@@ -74,7 +75,7 @@ func newActionAt(log *log.Logger, beacon *Beacon, actionName string, parentActio
 	a.parentAction = parentAction
 	a.thisLevelActions = thisLevelActions
 
-	a.startTime = int(timestamp.UnixNano() / int64(time.Millisecond))
+	a.startTime = TimeToMillis(timestamp)
 	a.endTime = -1
 	a.startSequenceNo = beacon.createSequenceNumber()
 	a.ID = beacon.createID()
@@ -120,7 +121,7 @@ func (a *rootAction) LeaveAction() {
 }
 
 func (a *rootAction) LeaveActionAt(endTime time.Time) {
-	a.action.log.Debug("RootAction.leaveActionAt()")
+	a.action.log.Debugf("RootAction.LeaveActionAt(%s)", endTime.String())
 
 	for len(a.openChildActions) > 0 {
 		for _, child := range a.openChildActions {
@@ -133,7 +134,7 @@ func (a *rootAction) LeaveActionAt(endTime time.Time) {
 }
 
 func (a *rootAction) EnterAction(actionName string) Action {
-	a.action.log.Debugf("EnterAction(%s)\n", actionName)
+	a.action.log.Debugf("EnterAction(%s)", actionName)
 
 	if a.action.endTime == -1 {
 		return newAction(a.action.log, a.action.beacon, actionName, a.action, a.openChildActions)
@@ -143,7 +144,7 @@ func (a *rootAction) EnterAction(actionName string) Action {
 }
 
 func (a *rootAction) EnterActionAt(actionName string, timestamp time.Time) Action {
-	a.action.log.Debugf("EnterActionAt(%s, %s)\n", actionName, timestamp)
+	a.action.log.Debugf("EnterActionAt(%s, %s)", actionName, timestamp)
 	return newActionAt(a.action.log, a.action.beacon, actionName, a.action, a.openChildActions, timestamp)
 
 }
@@ -162,6 +163,11 @@ func (a *rootAction) TraceWebRequestAt(url string, timestamp time.Time) *WebRequ
 	return w
 }
 
+func (a *rootAction) ReportStringValueAt(key string, value string, timestamp time.Time) {
+	a.action.log.WithFields(log.Fields{"key": key, "value": value, "timestamp": timestamp}).Debugf("ReportStringValueAt")
+	a.action.beacon.reportValueAt(a.action.ID, key, value, timestamp)
+}
+
 func (a *action) LeaveAction() {
 	a.log.Debugf("Action(%s).leaveAction()", a.name)
 
@@ -174,9 +180,9 @@ func (a *action) LeaveAction() {
 
 }
 func (a *action) LeaveActionAt(endTime time.Time) {
-	a.log.Debugf("Action(%s).LeaveActionAt()", a.name)
+	a.log.Debugf("Action(%s).LeaveActionAt(%s)", a.name, endTime.String())
 
-	a.endTime = int(endTime.UnixNano() / int64(time.Millisecond))
+	a.endTime = TimeToMillis(endTime)
 	a.endSequenceNo = a.beacon.createSequenceNumber()
 
 	a.beacon.addAction(a)
@@ -214,4 +220,9 @@ func (a *action) TraceWebRequest(url string) *WebRequestTracer {
 func (a *action) TraceWebRequestAt(url string, timestamp time.Time) *WebRequestTracer {
 	w := NewWebRequestTracerAt(a.log, a, url, a.beacon, timestamp)
 	return w
+}
+
+func (a *action) ReportStringValueAt(key string, value string, timestamp time.Time) {
+	a.log.WithFields(log.Fields{"key": key, "value": value, "timestamp": timestamp}).Debugf("ReportStringValueAt")
+	a.beacon.reportValueAt(a.ID, key, value, timestamp)
 }

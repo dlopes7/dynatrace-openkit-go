@@ -79,7 +79,7 @@ func (c *Configuration) createSessionNumber() int {
 }
 
 func (c *Configuration) makeTimestamp() int {
-	return int(time.Now().UnixNano() / int64(time.Millisecond))
+	return TimeToMillis(time.Now())
 }
 
 func (c *Configuration) updateSettings(statusResponse *StatusResponse) {

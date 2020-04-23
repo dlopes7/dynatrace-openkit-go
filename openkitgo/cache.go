@@ -192,7 +192,7 @@ func (b *beaconCache) getNextBeaconChunk(beaconID int, chunkPrefix string, maxSi
 }
 
 func (b *beaconCache) addActionData(beaconID int, timestamp int, data string) {
-	b.log.Debugf("addActionData(sn=%d, timestamp=%d, data=%s)\n", beaconID, timestamp, data)
+	b.log.Debugf("addActionData(sn=%d, timestamp=%d, data=%s)", beaconID, timestamp, data)
 
 	entry := b.getCachedEntryOrInsert(beaconID)
 	record := &beaconCacheRecord{

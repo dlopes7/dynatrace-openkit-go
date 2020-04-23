@@ -88,7 +88,7 @@ func (c *HttpClient) sendStatusRequest() *StatusResponse {
 	c.log.Debug("sendStatusRequest()")
 	response, err := c.sendRequest(REQUESTTYPE_STATUS, c.monitorURL, nil, nil, "GET")
 	if err != nil {
-		c.log.Errorf("Error getting response for sendNewSessionRequest: %s\n", err.Error())
+		c.log.Errorf("Error getting response for sendNewSessionRequest: %s", err.Error())
 		return nil
 	}
 	return response
@@ -99,7 +99,7 @@ func (c *HttpClient) sendNewSessionRequest() *StatusResponse {
 	c.log.Debug("sendNewSessionRequest()")
 	response, err := c.sendRequest(REQUEST_TYPE_NEW_SESSION, c.newSessionURL, nil, nil, "GET")
 	if err != nil {
-		c.log.Errorf("Error getting response for sendNewSessionRequest: %s\n", err.Error())
+		c.log.Errorf("Error getting response for sendNewSessionRequest: %s", err.Error())
 		return nil
 	}
 
@@ -107,10 +107,10 @@ func (c *HttpClient) sendNewSessionRequest() *StatusResponse {
 }
 
 func (c *HttpClient) sendBeaconRequest(clientIPAddress string, body []byte) *StatusResponse {
-	c.log.Debugf("sendBeaconRequest() - Body: %s\n", body)
+	c.log.Debugf("sendBeaconRequest() - Body: %s", body)
 	response, err := c.sendRequest(REQUEST_TYPE_BEACON, c.monitorURL, &clientIPAddress, body, "POST")
 	if err != nil {
-		c.log.Errorf("Error getting response for sendBeaconRequest: %s\n", err.Error())
+		c.log.Errorf("Error getting response for sendBeaconRequest: %s", err.Error())
 		return nil
 	}
 

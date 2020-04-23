@@ -152,7 +152,7 @@ func NewBeaconWithTimeAndDevice(log *log.Logger, beaconCache *beaconCache, confi
 	b := new(Beacon)
 
 	b.sessionNumber = b.config.createSessionNumber()
-	b.sessionStartTime = int(timestamp.UnixNano() / int64(time.Millisecond))
+	b.sessionStartTime = TimeToMillis(timestamp)
 	b.log = log
 	b.beaconCache = beaconCache
 	b.config = config
@@ -170,7 +170,7 @@ func NewBeaconWithTime(log *log.Logger, beaconCache *beaconCache, config *Config
 	b := new(Beacon)
 
 	b.sessionNumber = b.config.createSessionNumber()
-	b.sessionStartTime = int(timestamp.UnixNano() / int64(time.Millisecond))
+	b.sessionStartTime = TimeToMillis(timestamp)
 	b.log = log
 	b.beaconCache = beaconCache
 	b.config = config
@@ -450,8 +450,8 @@ func (b *Beacon) createTag(parentID int, tracerSeqNo int) string {
    }
 */
 func (b *Beacon) addWebRequest(parentID int, w *WebRequestTracer) {
-	startTime := int(w.startTime.UnixNano() / int64(time.Millisecond))
-	endTime := int(w.endTime.UnixNano() / int64(time.Millisecond))
+	startTime := TimeToMillis(w.startTime)
+	endTime := TimeToMillis(w.endTime)
 
 	var sb strings.Builder
 	b.buildBasicEventData(&sb, EventTypeWEBREQUEST, w.url)
@@ -465,5 +465,38 @@ func (b *Beacon) addWebRequest(parentID int, w *WebRequestTracer) {
 	b.addKeyValuePair(&sb, BEACON_KEY_WEBREQUEST_RESPONSECODE, strconv.Itoa(w.ResponseCode))
 
 	b.addEventData(startTime, &sb)
+
+}
+
+/*
+private long buildEvent(StringBuilder builder, EventType eventType, String name, int parentActionID) {
+buildBasicEventData(builder, eventType, name);
+
+long eventTimestamp = timingProvider.provideTimestampInMilliseconds();
+
+addKeyValuePair(builder, BEACON_KEY_PARENT_ACTION_ID, parentActionID);
+addKeyValuePair(builder, BEACON_KEY_START_SEQUENCE_NUMBER, createSequenceNumber());
+addKeyValuePair(builder, BEACON_KEY_TIME_0, getTimeSinceSessionStartTime(eventTimestamp));
+
+return eventTimestamp;
+}
+*/
+func (b *Beacon) buildEventAt(sb *strings.Builder, eventType EventType, name string, parentActionID int, timestamp time.Time) int {
+	b.buildBasicEventData(sb, eventType, name)
+	eventTimestamp := TimeToMillis(timestamp)
+	b.addKeyValuePair(sb, BEACON_KEY_PARENT_ACTION_ID, strconv.Itoa(parentActionID))
+	b.addKeyValuePair(sb, BEACON_KEY_START_SEQUENCE_NUMBER, strconv.Itoa(b.createSequenceNumber()))
+	b.addKeyValuePair(sb, BEACON_KEY_TIME_0, strconv.Itoa(eventTimestamp))
+
+	return eventTimestamp
+}
+
+func (b *Beacon) reportValueAt(parentActionID int, key string, value string, timestamp time.Time) {
+	var sb strings.Builder
+
+	eventTimestamp := b.buildEventAt(&sb, EventTypeVALUE_STRING, key, parentActionID, timestamp)
+	b.addKeyValuePair(&sb, BEACON_KEY_VALUE, value)
+
+	b.addEventData(eventTimestamp, &sb)
 
 }

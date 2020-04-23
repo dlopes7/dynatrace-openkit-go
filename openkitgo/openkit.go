@@ -33,7 +33,7 @@ type openkit struct {
 
 func (o *openkit) CreateSession(clientIPAddress string) Session {
 
-	o.log.Debugf("Creating session with IP address %s\n", clientIPAddress)
+	o.log.Debugf("Creating session with IP address %s", clientIPAddress)
 
 	beacon := NewBeacon(o.log, o.beaconCache, o.configuration, clientIPAddress)
 
@@ -42,7 +42,7 @@ func (o *openkit) CreateSession(clientIPAddress string) Session {
 
 func (o *openkit) CreateSessionWithTime(clientIPAddress string, timestamp time.Time) Session {
 
-	o.log.Debugf("Creating session with IP address %s\n", clientIPAddress)
+	o.log.Debugf("Creating session with IP address %s", clientIPAddress)
 
 	beacon := NewBeaconWithTime(o.log, o.beaconCache, o.configuration, clientIPAddress, timestamp)
 
@@ -51,7 +51,7 @@ func (o *openkit) CreateSessionWithTime(clientIPAddress string, timestamp time.T
 
 func (o *openkit) CreateSessionWithTimeAndDevice(clientIPAddress string, timestamp time.Time, deviceID string) Session {
 
-	o.log.Debugf("Creating session with IP address %s\n", clientIPAddress)
+	o.log.Debugf("Creating session with IP address %s", clientIPAddress)
 
 	beacon := NewBeaconWithTimeAndDevice(o.log, o.beaconCache, o.configuration, clientIPAddress, timestamp, deviceID)
 

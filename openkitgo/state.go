@@ -169,15 +169,17 @@ func (b *beaconSendingCaptureOnState) sendNewSessionRequests(context *BeaconSend
 
 		statusResponse = context.httpClient.sendNewSessionRequest()
 
-		if statusResponse.responseCode < 400 {
-			currentConfiguration := session.getBeaconConfiguration()
-			newConfiguration := &BeaconConfiguration{
-				multiplicity:        statusResponse.multiplicity,
-				dataCollectionLevel: currentConfiguration.dataCollectionLevel,
-				crashReportingLevel: currentConfiguration.crashReportingLevel,
-			}
-			session.updateBeaconConfiguration(newConfiguration)
+		if statusResponse != nil {
+			if statusResponse.responseCode < 400 {
+				currentConfiguration := session.getBeaconConfiguration()
+				newConfiguration := &BeaconConfiguration{
+					multiplicity:        statusResponse.multiplicity,
+					dataCollectionLevel: currentConfiguration.dataCollectionLevel,
+					crashReportingLevel: currentConfiguration.crashReportingLevel,
+				}
+				session.updateBeaconConfiguration(newConfiguration)
 
+			}
 		}
 
 	}

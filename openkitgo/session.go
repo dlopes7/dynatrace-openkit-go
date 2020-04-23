@@ -68,14 +68,14 @@ func (s *session) clearCapturedData() {
 }
 
 func (s *session) EnterAction(actionName string) Action {
-	s.log.Debugf("enterAction(%s)", actionName)
+	s.log.Debugf("Session.EnterAction(%s)", actionName)
 
 	return newRootAction(s.log, s.beacon, actionName, s.openRootActions)
 
 }
 
 func (s *session) EnterActionAt(actionName string, timestamp time.Time) Action {
-	s.log.Debugf("enterAction(%s)", actionName)
+	s.log.Debugf("Session.EnterActionAt(%s, %s)", actionName, timestamp.String())
 
 	return newRootActionAt(s.log, s.beacon, actionName, s.openRootActions, timestamp)
 
@@ -115,12 +115,12 @@ func (s *session) sendBeacon(httpClient *HttpClient) *StatusResponse {
 }
 
 func (s *session) IdentifyUser(userTag string) {
-	s.log.Debugf("identifyUser(%s)\n", userTag)
+	s.log.Debugf("Session.IdentifyUser(%s)", userTag)
 	s.beacon.identifyUser(userTag)
 }
 
 func (s *session) End() {
-	s.log.Debug("Session.end()")
+	s.log.Debug("Session.End()")
 
 	s.endTime = s.beacon.getCurrentTimestamp()
 
@@ -137,7 +137,7 @@ func (s *session) End() {
 func (s *session) EndAt(endTime time.Time) {
 	s.log.Debug("Session.end()")
 
-	s.endTime = int(endTime.UnixNano() / int64(time.Millisecond))
+	s.endTime = TimeToMillis(endTime)
 
 	for len(s.openRootActions) != 0 {
 		for _, a := range s.openRootActions {
