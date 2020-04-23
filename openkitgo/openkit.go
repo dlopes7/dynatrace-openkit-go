@@ -28,7 +28,7 @@ type openkit struct {
 	beaconCache   *beaconCache
 	beaconSender  *BeaconSender
 	configuration *Configuration
-	log           log.Logger
+	log           *log.Logger
 }
 
 func (o *openkit) CreateSession(clientIPAddress string) Session {
@@ -37,7 +37,7 @@ func (o *openkit) CreateSession(clientIPAddress string) Session {
 
 	beacon := NewBeacon(o.log, o.beaconCache, o.configuration, clientIPAddress)
 
-	return newSession(&o.log, o.beaconSender, beacon)
+	return newSession(o.log, o.beaconSender, beacon)
 }
 
 func (o *openkit) CreateSessionWithTime(clientIPAddress string, timestamp time.Time) Session {
@@ -46,7 +46,7 @@ func (o *openkit) CreateSessionWithTime(clientIPAddress string, timestamp time.T
 
 	beacon := NewBeaconWithTime(o.log, o.beaconCache, o.configuration, clientIPAddress, timestamp)
 
-	return newSession(&o.log, o.beaconSender, beacon)
+	return newSession(o.log, o.beaconSender, beacon)
 }
 
 func (o *openkit) CreateSessionWithTimeAndDevice(clientIPAddress string, timestamp time.Time, deviceID string) Session {
@@ -55,7 +55,7 @@ func (o *openkit) CreateSessionWithTimeAndDevice(clientIPAddress string, timesta
 
 	beacon := NewBeaconWithTimeAndDevice(o.log, o.beaconCache, o.configuration, clientIPAddress, timestamp, deviceID)
 
-	return newSession(&o.log, o.beaconSender, beacon)
+	return newSession(o.log, o.beaconSender, beacon)
 }
 
 func (o *openkit) initialize() {
@@ -64,7 +64,7 @@ func (o *openkit) initialize() {
 
 type OpenKitBuilder interface {
 	WithLogLevel(log.Level) OpenKitBuilder
-	WithLogger(log.Logger) OpenKitBuilder
+	WithLogger(*log.Logger) OpenKitBuilder
 	WithApplicationName(string) OpenKitBuilder
 	WithApplicationVersion(string) OpenKitBuilder
 	WithOperatingSystem(string) OpenKitBuilder
@@ -75,7 +75,7 @@ type OpenKitBuilder interface {
 
 type openKitBuilder struct {
 	logLevel log.Level
-	log      log.Logger
+	log      *log.Logger
 
 	endpointURL   string
 	applicationID string
@@ -102,7 +102,7 @@ func (ob *openKitBuilder) WithLogLevel(logLevel log.Level) OpenKitBuilder {
 	return ob
 }
 
-func (ob *openKitBuilder) WithLogger(log log.Logger) OpenKitBuilder {
+func (ob *openKitBuilder) WithLogger(log *log.Logger) OpenKitBuilder {
 	ob.log = log
 	return ob
 }
@@ -141,7 +141,7 @@ func (ob *openKitBuilder) Build() OpenKit {
 	b := NewBeaconSender(ob.log, c, client)
 
 	openkit := &openkit{
-		beaconCache:   NewBeaconCache(&ob.log),
+		beaconCache:   NewBeaconCache(ob.log),
 		beaconSender:  b,
 		configuration: c,
 		log:           ob.log,

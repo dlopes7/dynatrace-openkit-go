@@ -44,10 +44,10 @@ type HttpClient struct {
 	monitorURL    string
 	newSessionURL string
 	serverID      int
-	log           log.Logger
+	log           *log.Logger
 }
 
-func NewHttpClient(log log.Logger, configuration HTTPClientConfiguration) *HttpClient {
+func NewHttpClient(log *log.Logger, configuration HTTPClientConfiguration) *HttpClient {
 	httpClient := new(HttpClient)
 
 	httpClient.log = log

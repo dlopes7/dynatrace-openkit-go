@@ -10,11 +10,11 @@ import (
 )
 
 type BeaconSender struct {
-	log     log.Logger
+	log     *log.Logger
 	context BeaconSenderContext
 }
 
-func NewBeaconSender(log log.Logger, config *Configuration, client *HttpClient) *BeaconSender {
+func NewBeaconSender(log *log.Logger, config *Configuration, client *HttpClient) *BeaconSender {
 	b := new(BeaconSender)
 	b.log = log
 
@@ -117,7 +117,7 @@ const (
 )
 
 type Beacon struct {
-	log                log.Logger
+	log                *log.Logger
 	beaconCache        *beaconCache
 	config             *Configuration
 	clientIPAddress    string
@@ -132,7 +132,7 @@ type Beacon struct {
 	immutableBasicBeaconData string
 }
 
-func NewBeacon(log log.Logger, beaconCache *beaconCache, config *Configuration, clientIPAddress string) *Beacon {
+func NewBeacon(log *log.Logger, beaconCache *beaconCache, config *Configuration, clientIPAddress string) *Beacon {
 	b := new(Beacon)
 
 	b.sessionNumber = b.config.createSessionNumber()
@@ -148,7 +148,7 @@ func NewBeacon(log log.Logger, beaconCache *beaconCache, config *Configuration, 
 	return b
 }
 
-func NewBeaconWithTimeAndDevice(log log.Logger, beaconCache *beaconCache, config *Configuration, clientIPAddress string, timestamp time.Time, deviceID string) *Beacon {
+func NewBeaconWithTimeAndDevice(log *log.Logger, beaconCache *beaconCache, config *Configuration, clientIPAddress string, timestamp time.Time, deviceID string) *Beacon {
 	b := new(Beacon)
 
 	b.sessionNumber = b.config.createSessionNumber()
@@ -166,7 +166,7 @@ func NewBeaconWithTimeAndDevice(log log.Logger, beaconCache *beaconCache, config
 
 }
 
-func NewBeaconWithTime(log log.Logger, beaconCache *beaconCache, config *Configuration, clientIPAddress string, timestamp time.Time) *Beacon {
+func NewBeaconWithTime(log *log.Logger, beaconCache *beaconCache, config *Configuration, clientIPAddress string, timestamp time.Time) *Beacon {
 	b := new(Beacon)
 
 	b.sessionNumber = b.config.createSessionNumber()

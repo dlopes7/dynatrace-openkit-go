@@ -5,6 +5,7 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
+	"time"
 )
 
 const (
@@ -19,12 +20,12 @@ const (
 )
 
 type StatusResponse struct {
-	log          log.Logger
+	log          *log.Logger
 	responseCode int
 	headers      map[string][]string
 
 	capture        bool
-	sendInterval   int
+	sendInterval   time.Duration
 	monitorName    string
 	serverID       int
 	maxBeaconSize  int
@@ -38,7 +39,7 @@ type KeyValuePair struct {
 	value string
 }
 
-func NewStatusResponse(log log.Logger, response string, responseCode int, headers map[string][]string) *StatusResponse {
+func NewStatusResponse(log *log.Logger, response string, responseCode int, headers map[string][]string) *StatusResponse {
 
 	s := new(StatusResponse)
 	s.log = log
@@ -67,7 +68,7 @@ func (s *StatusResponse) parseResponse(response string) {
 			s.capture = kv.value == "1"
 		} else if RESPONSE_KEY_SEND_INTERVAL == kv.key {
 			value, _ := strconv.Atoi(kv.value)
-			s.sendInterval = value * 1000
+			s.sendInterval = time.Duration(value*1000) * time.Millisecond
 
 		} else if RESPONSE_KEY_MONITOR_NAME == kv.key {
 			s.monitorName = kv.value

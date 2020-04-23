@@ -1,6 +1,7 @@
 package openkitgo
 
 import (
+	log "github.com/sirupsen/logrus"
 	"math"
 	"time"
 )
@@ -49,9 +50,8 @@ func (b *beaconSendingInitState) executeStatusRequest(context *BeaconSenderConte
 	var statusResponse *StatusResponse
 
 	for {
-		currentTimestamp := context.config.makeTimestamp()
-		context.lastOpenSessionBeaconSendTime = currentTimestamp
-		context.lastStatusCheckTime = currentTimestamp
+		context.lastOpenSessionBeaconSendTime = time.Now()
+		context.lastStatusCheckTime = time.Now()
 
 		statusResponse = b.sendStatusRequest(context)
 
@@ -128,12 +128,12 @@ func (b *beaconSendingCaptureOnState) execute(context *BeaconSenderContext) {
 		}
 		return
 	}
-	// openSessionsResponse := b.sendOpenSessions(context)
+	openSessionsResponse := b.sendOpenSessions(context)
 
 	lastStatusResponse := newSessionsResponse
-	// if openSessionsResponse != nil {
-	//	lastStatusResponse = openSessionsResponse
-	//}
+	if openSessionsResponse != nil {
+		lastStatusResponse = openSessionsResponse
+	}
 
 	if finishedSessionsResponse != nil {
 		lastStatusResponse = finishedSessionsResponse
@@ -210,15 +210,19 @@ func (b *beaconSendingCaptureOnState) sendOpenSessions(context *BeaconSenderCont
 
 	var statusResponse *StatusResponse
 
-	// TODO - Implement setLastOpenSessionBeaconSendTime
+	now := time.Now()
+	if now.Before(context.lastOpenSessionBeaconSendTime.Add(DEFAULT_SEND_INTERVAL)) {
+		return nil
+	}
 
 	for _, openSession := range context.getAllOpenAndConfiguredSessions() {
-		context.log.Debug("Found opened session! Sending? ", openSession.isDataSendingAllowed())
-
 		if openSession.isDataSendingAllowed() {
+			context.log.WithFields(log.Fields{"session": openSession}).Debugf("Sending open session")
 			statusResponse = openSession.sendBeacon(context.httpClient)
 		}
 	}
+
+	context.lastOpenSessionBeaconSendTime = now
 
 	return statusResponse
 

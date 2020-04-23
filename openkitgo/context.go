@@ -6,7 +6,7 @@ import (
 )
 
 type BeaconSenderContext struct {
-	log        log.Logger
+	log        *log.Logger
 	httpClient *HttpClient
 	config     *Configuration
 
@@ -16,8 +16,8 @@ type BeaconSenderContext struct {
 	currentState BeaconSendingState
 	nextState    BeaconSendingState
 
-	lastOpenSessionBeaconSendTime int
-	lastStatusCheckTime           int
+	lastOpenSessionBeaconSendTime time.Time
+	lastStatusCheckTime           time.Time
 
 	shutdown bool
 

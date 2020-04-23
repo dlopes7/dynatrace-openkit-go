@@ -6,8 +6,8 @@ import (
 	"time"
 )
 
-const DEFAULT_SEND_INTERVAL = 2 * 60 * 1000 // default: wait 2m (in ms) to send beacon
-const DEFAULT_MAX_BEACON_SIZE = 30 * 1024   // default: max 30KB (in B) to send in one beacon
+const DEFAULT_SEND_INTERVAL = time.Duration(2) * time.Minute
+const DEFAULT_MAX_BEACON_SIZE = 30 * 1024 // default: max 30KB (in B) to send in one beacon
 const DEFAULT_CAPTURE = true
 const DEFAULT_CAPTURE_ERRORS = true
 const DEFAULT_CAPTURE_CRASHES = true
@@ -24,7 +24,7 @@ type Configuration struct {
 	endpointURL     string
 
 	capture        bool
-	sendInterval   int
+	sendInterval   time.Duration
 	maxBeaconSize  int
 	captureErrors  bool
 	captureCrashes bool

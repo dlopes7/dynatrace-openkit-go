@@ -144,12 +144,8 @@ func (a *rootAction) EnterAction(actionName string) Action {
 
 func (a *rootAction) EnterActionAt(actionName string, timestamp time.Time) Action {
 	a.action.log.Debugf("EnterActionAt(%s, %s)\n", actionName, timestamp)
+	return newActionAt(a.action.log, a.action.beacon, actionName, a.action, a.openChildActions, timestamp)
 
-	if a.action.endTime == -1 {
-		return newActionAt(a.action.log, a.action.beacon, actionName, a.action, a.openChildActions, timestamp)
-	}
-
-	return nil
 }
 
 func (a *rootAction) getActionID() int {
