@@ -117,7 +117,7 @@ func (s *StatusResponse) parseResponseKeyValuePair(response string) []*KeyValueP
 }
 
 func encodeWithReservedChars(input string, encoding string, additionalReservedChars []string) string {
-	return url.PathEscape(input)
+	return url.QueryEscape(input)
 }
 
 func isSuccessfulResponse(response *StatusResponse) bool {

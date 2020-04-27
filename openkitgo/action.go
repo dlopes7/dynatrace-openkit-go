@@ -2,6 +2,7 @@ package openkitgo
 
 import (
 	log "github.com/sirupsen/logrus"
+	"sync"
 	"time"
 )
 
@@ -39,6 +40,7 @@ type action struct {
 	beacon *Beacon
 
 	thisLevelActions map[int]Action
+	lock             sync.Mutex
 }
 
 type rootAction struct {
@@ -50,18 +52,20 @@ type rootAction struct {
 func newAction(log *log.Logger, beacon *Beacon, actionName string, parentAction *action, thisLevelActions map[int]Action) *action {
 	a := new(action)
 
+	a.lock.Lock()
 	a.log = log
 	a.beacon = beacon
 	a.name = actionName
 	a.parentAction = parentAction
+
 	a.thisLevelActions = thisLevelActions
 
 	a.startTime = beacon.getCurrentTimestamp()
 	a.endTime = -1
 	a.startSequenceNo = beacon.createSequenceNumber()
 	a.ID = beacon.createID()
-
 	a.thisLevelActions[a.ID] = a
+	a.lock.Unlock()
 
 	return a
 }
@@ -69,6 +73,7 @@ func newAction(log *log.Logger, beacon *Beacon, actionName string, parentAction 
 func newActionAt(log *log.Logger, beacon *Beacon, actionName string, parentAction *action, thisLevelActions map[int]Action, timestamp time.Time) *action {
 	a := new(action)
 
+	a.lock.Lock()
 	a.log = log
 	a.beacon = beacon
 	a.name = actionName
@@ -81,6 +86,7 @@ func newActionAt(log *log.Logger, beacon *Beacon, actionName string, parentActio
 	a.ID = beacon.createID()
 
 	a.thisLevelActions[a.ID] = a
+	a.lock.Unlock()
 
 	return a
 }
@@ -176,7 +182,9 @@ func (a *action) LeaveAction() {
 
 	a.beacon.addAction(a)
 
+	a.lock.Lock()
 	delete(a.thisLevelActions, a.ID)
+	a.lock.Unlock()
 
 }
 func (a *action) LeaveActionAt(endTime time.Time) {
@@ -186,8 +194,9 @@ func (a *action) LeaveActionAt(endTime time.Time) {
 	a.endSequenceNo = a.beacon.createSequenceNumber()
 
 	a.beacon.addAction(a)
-
+	a.lock.Lock()
 	delete(a.thisLevelActions, a.ID)
+	a.lock.Unlock()
 
 }
 

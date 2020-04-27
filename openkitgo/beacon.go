@@ -468,25 +468,12 @@ func (b *Beacon) addWebRequest(parentID int, w *WebRequestTracer) {
 
 }
 
-/*
-private long buildEvent(StringBuilder builder, EventType eventType, String name, int parentActionID) {
-buildBasicEventData(builder, eventType, name);
-
-long eventTimestamp = timingProvider.provideTimestampInMilliseconds();
-
-addKeyValuePair(builder, BEACON_KEY_PARENT_ACTION_ID, parentActionID);
-addKeyValuePair(builder, BEACON_KEY_START_SEQUENCE_NUMBER, createSequenceNumber());
-addKeyValuePair(builder, BEACON_KEY_TIME_0, getTimeSinceSessionStartTime(eventTimestamp));
-
-return eventTimestamp;
-}
-*/
 func (b *Beacon) buildEventAt(sb *strings.Builder, eventType EventType, name string, parentActionID int, timestamp time.Time) int {
 	b.buildBasicEventData(sb, eventType, name)
 	eventTimestamp := TimeToMillis(timestamp)
 	b.addKeyValuePair(sb, BEACON_KEY_PARENT_ACTION_ID, strconv.Itoa(parentActionID))
 	b.addKeyValuePair(sb, BEACON_KEY_START_SEQUENCE_NUMBER, strconv.Itoa(b.createSequenceNumber()))
-	b.addKeyValuePair(sb, BEACON_KEY_TIME_0, strconv.Itoa(eventTimestamp))
+	b.addKeyValuePair(sb, BEACON_KEY_TIME_0, strconv.Itoa(b.getTimeSinceSessionStartTime(eventTimestamp)))
 
 	return eventTimestamp
 }
