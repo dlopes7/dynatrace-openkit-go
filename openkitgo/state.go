@@ -156,7 +156,7 @@ func (b *beaconSendingCaptureOnState) sendNewSessionRequests(context *BeaconSend
 
 	for _, session := range context.getAllNewSessions() {
 
-		if !session.canSendNewSessionRequest() {
+		/*if !session.canSendNewSessionRequest() {
 			currentConfiguration := session.getBeaconConfiguration()
 			newConfiguration := &BeaconConfiguration{
 				multiplicity:        0,
@@ -165,7 +165,7 @@ func (b *beaconSendingCaptureOnState) sendNewSessionRequests(context *BeaconSend
 			}
 			session.updateBeaconConfiguration(newConfiguration)
 			continue
-		}
+		}*/
 
 		statusResponse = context.httpClient.sendNewSessionRequest()
 
@@ -193,8 +193,6 @@ func (b *beaconSendingCaptureOnState) sendFinishedSessions(context *BeaconSender
 	var statusResponse *StatusResponse
 
 	for _, finishedSession := range context.getAllFinishedAndConfiguredSessions() {
-		context.log.Debug("Found finished session! Sending!")
-
 		if finishedSession.isDataSendingAllowed() {
 			context.removeSession(finishedSession)
 			statusResponse = finishedSession.sendBeacon(context.httpClient)

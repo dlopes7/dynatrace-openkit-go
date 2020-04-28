@@ -120,7 +120,7 @@ func (s *session) IdentifyUser(userTag string) {
 }
 
 func (s *session) End() {
-	s.log.Debug("Session.End()")
+	s.log.Debugf("Session.End()")
 
 	s.endTime = s.beacon.getCurrentTimestamp()
 
@@ -135,13 +135,13 @@ func (s *session) End() {
 }
 
 func (s *session) EndAt(endTime time.Time) {
-	s.log.Debug("Session.end()")
+	s.log.Debugf("Session.EndAt(%s)", endTime)
 
 	s.endTime = TimeToMillis(endTime)
 
 	for len(s.openRootActions) != 0 {
 		for _, a := range s.openRootActions {
-			a.LeaveAction()
+			a.LeaveActionAt(endTime)
 		}
 	}
 

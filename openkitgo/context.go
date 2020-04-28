@@ -66,7 +66,6 @@ func (b *BeaconSenderContext) getAllNewSessions() []Session {
 			newSessions = append(newSessions, session)
 		}
 	}
-
 	return newSessions
 }
 
@@ -86,7 +85,6 @@ func (b *BeaconSenderContext) getAllFinishedAndConfiguredSessions() []*session {
 			finishedSessions = append(finishedSessions, session)
 		}
 	}
-
 	return finishedSessions
 
 }
@@ -101,7 +99,6 @@ func (b *BeaconSenderContext) getAllOpenAndConfiguredSessions() []*session {
 			openSessions = append(openSessions, session)
 		}
 	}
-
 	return openSessions
 
 }

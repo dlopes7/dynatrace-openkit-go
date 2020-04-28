@@ -121,9 +121,7 @@ func (a *rootAction) LeaveAction() {
 			child.LeaveAction()
 		}
 	}
-
 	a.action.LeaveAction()
-
 }
 
 func (a *rootAction) LeaveActionAt(endTime time.Time) {
@@ -136,7 +134,6 @@ func (a *rootAction) LeaveActionAt(endTime time.Time) {
 	}
 
 	a.action.LeaveActionAt(endTime)
-
 }
 
 func (a *rootAction) EnterAction(actionName string) Action {
@@ -175,26 +172,23 @@ func (a *rootAction) ReportStringValueAt(key string, value string, timestamp tim
 }
 
 func (a *action) LeaveAction() {
+	a.lock.Lock()
 	a.log.Debugf("Action(%s).leaveAction()", a.name)
 
 	a.endTime = a.beacon.getCurrentTimestamp()
 	a.endSequenceNo = a.beacon.createSequenceNumber()
 
 	a.beacon.addAction(a)
-
-	a.lock.Lock()
 	delete(a.thisLevelActions, a.ID)
 	a.lock.Unlock()
 
 }
 func (a *action) LeaveActionAt(endTime time.Time) {
+	a.lock.Lock()
 	a.log.Debugf("Action(%s).LeaveActionAt(%s)", a.name, endTime.String())
-
 	a.endTime = TimeToMillis(endTime)
 	a.endSequenceNo = a.beacon.createSequenceNumber()
-
 	a.beacon.addAction(a)
-	a.lock.Lock()
 	delete(a.thisLevelActions, a.ID)
 	a.lock.Unlock()
 
