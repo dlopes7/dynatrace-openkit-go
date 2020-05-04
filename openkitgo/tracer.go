@@ -93,3 +93,7 @@ func (w *WebRequestTracer) StopAt(responseCode int, timestamp time.Time) {
 func (w *WebRequestTracer) close() {
 	w.Stop(w.ResponseCode)
 }
+
+func (w *WebRequestTracer) closeAt(timestamp time.Time) {
+	w.StopAt(w.ResponseCode, timestamp)
+}

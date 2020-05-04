@@ -148,15 +148,17 @@ func (s *session) clearCapturedData() {
 func (s *session) EnterAction(actionName string) Action {
 	s.log.WithFields(log.Fields{"actionName": actionName}).Debugf("Session.EnterAction")
 
-	return newRootAction(s.log, s, actionName, s.beacon)
-
+	nr := newRootAction(s.log, s, actionName, s.beacon)
+	s.storeChildInList(nr)
+	return nr
 }
 
 func (s *session) EnterActionAt(actionName string, timestamp time.Time) Action {
 	s.log.Debugf("Session.EnterActionAt(%s, %s)", actionName, timestamp.String())
 
-	return newRootActionAt(s.log, s, actionName, s.beacon, timestamp)
-
+	nr := newRootActionAt(s.log, s, actionName, s.beacon, timestamp)
+	s.storeChildInList(nr)
+	return nr
 }
 
 func (s *session) finishSession() {
@@ -198,11 +200,7 @@ func (s *session) IdentifyUser(userTag string) {
 }
 
 func (s *session) End() {
-	s.log.Debugf("Session.End()")
-
-	if !s.state.markAsIsFinishing() {
-		return
-	}
+	s.log.Debugf("Session.End")
 
 	children := s.getCopyOfChildObjects()
 	for _, c := range children {
@@ -216,15 +214,11 @@ func (s *session) End() {
 }
 
 func (s *session) EndAt(timestamp time.Time) {
-	s.log.Debugf("Session.End()")
-
-	if !s.state.markAsIsFinishing() {
-		return
-	}
+	s.log.WithFields(log.Fields{"timestamp": timestamp}).Debugf("Session.EndAt")
 
 	children := s.getCopyOfChildObjects()
 	for _, c := range children {
-		c.close()
+		c.closeAt(timestamp)
 	}
 
 	s.endTime = timestamp

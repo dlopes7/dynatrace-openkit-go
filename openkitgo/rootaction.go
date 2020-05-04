@@ -83,7 +83,7 @@ func (r *RootAction) LeaveActionAt(timestamp time.Time) {
 	r.log.Debugf("RootAction.LeaveAction")
 
 	for _, c := range r.getCopyOfChildObjects() {
-		c.close()
+		c.closeAt(timestamp)
 	}
 
 	r.endTime = timestamp
@@ -134,6 +134,10 @@ func (r *RootAction) close() {
 	r.LeaveAction()
 }
 
+func (r *RootAction) closeAt(timestamp time.Time) {
+	r.LeaveActionAt(timestamp)
+}
+
 func (r *RootAction) onChildClosed(child OpenKitObject) {
 	r.lock.Lock()
 	defer r.lock.Unlock()
@@ -156,6 +160,7 @@ func (r *RootAction) EnterAction(name string) Action {
 func (r *RootAction) EnterActionAt(name string, timestamp time.Time) Action {
 	r.log.WithFields(log.Fields{"name": name}).Debugf("RootAction.EnterAction")
 	r.lock.Lock()
+	defer r.lock.Unlock()
 	if !r.isActionLeft {
 		child := newLeafActionAt(r.log, r, name, r.beacon, timestamp)
 		r.storeChildInList(child)

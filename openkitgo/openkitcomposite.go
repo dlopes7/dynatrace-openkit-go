@@ -1,5 +1,7 @@
 package openkitgo
 
+import "time"
+
 const DEFAULT_ACTION_ID = 0
 
 type OpenKitComposite interface {
@@ -14,4 +16,5 @@ type OpenKitComposite interface {
 
 type OpenKitObject interface {
 	close()
+	closeAt(time.Time)
 }

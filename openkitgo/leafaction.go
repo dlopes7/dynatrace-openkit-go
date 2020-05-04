@@ -150,10 +150,14 @@ func (l *LeafAction) close() {
 	l.LeaveAction()
 }
 
+func (l *LeafAction) closeAt(timestamp time.Time) {
+	l.LeaveActionAt(timestamp)
+}
+
 func (l *LeafAction) onChildClosed(child OpenKitObject) {
 	l.lock.Lock()
+	defer l.lock.Unlock()
 	l.removeChildFromList(child)
-	l.lock.Unlock()
 }
 
 func (l *LeafAction) EnterAction(name string) Action {
