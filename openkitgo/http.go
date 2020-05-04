@@ -96,7 +96,7 @@ func (c *HttpClient) sendStatusRequest() *StatusResponse {
 }
 
 func (c *HttpClient) sendNewSessionRequest() *StatusResponse {
-	c.log.Debug("sendNewSessionRequest()")
+	c.log.Debugf("HttpClient.sendNewSessionRequest()")
 	response, err := c.sendRequest(REQUEST_TYPE_NEW_SESSION, c.newSessionURL, nil, nil, "GET")
 	if err != nil {
 		c.log.Errorf("Error getting response for sendNewSessionRequest: %s", err.Error())

@@ -2,6 +2,7 @@ package openkitgo
 
 import (
 	log "github.com/sirupsen/logrus"
+	"sync"
 	"time"
 )
 
@@ -11,10 +12,6 @@ const (
 	OpenKitTypeAPPMON    openKitType = 1
 	OpenKitTypeDYNATRACE openKitType = 1
 )
-
-type OpenKitComposite interface {
-	getActionID() int
-}
 
 type OpenKit interface {
 	CreateSession(string) Session
@@ -29,11 +26,16 @@ type openkit struct {
 	beaconSender  *BeaconSender
 	configuration *Configuration
 	log           *log.Logger
+
+	lock sync.Mutex
 }
 
 func (o *openkit) CreateSession(clientIPAddress string) Session {
 
 	o.log.Debugf("Creating session with IP address %s", clientIPAddress)
+
+	o.lock.Lock()
+	defer o.lock.Unlock()
 
 	beacon := NewBeacon(o.log, o.beaconCache, o.configuration, clientIPAddress)
 

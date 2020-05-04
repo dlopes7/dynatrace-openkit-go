@@ -11,4 +11,5 @@ github.com/theodesp/blockingQueues v0.0.0-20171230192932-26531ad66e7c h1:Xh94kHW
 github.com/theodesp/blockingQueues v0.0.0-20171230192932-26531ad66e7c/go.mod h1:wfSWDk6y3osMa+0daHSbOOy2mC0GJ/ibcNQiIvBq/zk=
 golang.org/dl v0.0.0-20190412022554-d9038dbc74fd h1:PPCbIL0GuSQdNMNrXvj32DcBeWxtWEe68VFH3n9hjqk=
 golang.org/dl v0.0.0-20190412022554-d9038dbc74fd/go.mod h1:IUMfjQLJQd4UTqG1Z90tenwKoCX93Gn3MAQJMOSBsDQ=
+golang.org/x/sys v0.0.0-20190422165155-953cdadca894 h1:Cz4ceDQGXuKRnVBDTS23GTn/pU5OE2C0WrNTOYK1Uuc=
 golang.org/x/sys v0.0.0-20190422165155-953cdadca894/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=

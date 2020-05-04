@@ -3,6 +3,7 @@ package openkitgo
 import (
 	"math/rand"
 	"strconv"
+	"sync"
 	"time"
 )
 
@@ -35,6 +36,10 @@ type Configuration struct {
 
 	httpClientConfiguration *HTTPClientConfiguration
 	beaconConfiguration     *BeaconConfiguration
+
+	serverConfigurationSet bool
+
+	lock sync.Mutex
 }
 
 func NewConfiguration(endpointURL string, applicationName string, applicationID string, applicationVersion string, deviceID int, operatingSystem string, manufacturer string, modelID string) *Configuration {
@@ -120,6 +125,12 @@ func (c *Configuration) updateSettings(statusResponse *StatusResponse) {
 
 }
 
+func (c *Configuration) isServerConfigurationSet() bool {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+	return c.serverConfigurationSet
+}
+
 type HTTPClientConfiguration struct {
 	baseURL       string
 	applicationID string
@@ -130,4 +141,7 @@ type BeaconConfiguration struct {
 	multiplicity        int
 	dataCollectionLevel int
 	crashReportingLevel int
+}
+
+type ServerConfiguration struct {
 }

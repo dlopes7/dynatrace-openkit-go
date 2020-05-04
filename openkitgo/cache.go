@@ -4,6 +4,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"strings"
 	"sync"
+	"time"
 )
 
 type BeaconCache interface {
@@ -62,7 +63,7 @@ func (b *beaconCache) addObserver(observer Observer) {
 
 }
 
-func (b *beaconCache) addEventData(beaconID int, timestamp int, data string) {
+func (b *beaconCache) addEventData(beaconID int, timestamp time.Time, data string) {
 	b.log.Debugf("addEventData(sn: %d, timestamp: %d, data: %s)", beaconID, timestamp, data)
 
 	entry := b.getCachedEntryOrInsert(beaconID)
@@ -191,7 +192,7 @@ func (b *beaconCache) getNextBeaconChunk(beaconID int, chunkPrefix string, maxSi
 
 }
 
-func (b *beaconCache) addActionData(beaconID int, timestamp int, data string) {
+func (b *beaconCache) addActionData(beaconID int, timestamp time.Time, data string) {
 	b.log.Debugf("addActionData(sn=%d, timestamp=%d, data=%s)", beaconID, timestamp, data)
 
 	entry := b.getCachedEntryOrInsert(beaconID)
@@ -357,7 +358,7 @@ func (b *beaconCacheEntry) removeDataMarkedForSending() {
 }
 
 type beaconCacheRecord struct {
-	timestamp        int
+	timestamp        time.Time
 	data             string
 	markedForSending bool
 }

@@ -24,17 +24,17 @@ type BeaconSenderContext struct {
 	sessions map[int]*session
 }
 
-func (b BeaconSenderContext) removeSession(session *session) {
+func (b *BeaconSenderContext) removeSession(session *session) {
 
 	delete(b.sessions, session.ID)
 
 }
 
-func (b BeaconSenderContext) isCapture() bool {
+func (b *BeaconSenderContext) isCapture() bool {
 	return b.config.capture
 }
 
-func (BeaconSenderContext) sleep(timeToSleep time.Duration) {
+func (b *BeaconSenderContext) sleep(timeToSleep time.Duration) {
 	time.Sleep(timeToSleep)
 }
 
@@ -53,12 +53,12 @@ func (b *BeaconSenderContext) startSession(session *session) {
 	b.sessions[session.ID] = session
 }
 
-func (b *BeaconSenderContext) finishSession(session Session) {
+func (b *BeaconSenderContext) finishSession(session *session) {
 	session.finishSession()
 }
 
-func (b *BeaconSenderContext) getAllNewSessions() []Session {
-	newSessions := make([]Session, 0)
+func (b *BeaconSenderContext) getAllNewSessions() []*session {
+	newSessions := make([]*session, 0)
 
 	for _, session := range b.sessions {
 

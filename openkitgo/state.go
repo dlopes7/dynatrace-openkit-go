@@ -112,6 +112,8 @@ type beaconSendingCaptureOnState struct{}
 func (b *beaconSendingCaptureOnState) execute(context *BeaconSenderContext) {
 	context.sleep(1 * time.Second)
 
+	context.log.WithFields(log.Fields{"sessions": len(context.sessions)}).Debugf("Total sessions")
+
 	// Send all new Sessions (Beacon Configure not set yet)
 	newSessionsResponse := b.sendNewSessionRequests(context)
 	if isTooManyRequestsResponse(newSessionsResponse) {
@@ -155,33 +157,13 @@ func (b *beaconSendingCaptureOnState) sendNewSessionRequests(context *BeaconSend
 	var statusResponse *StatusResponse
 
 	for _, session := range context.getAllNewSessions() {
-
-		/*if !session.canSendNewSessionRequest() {
-			currentConfiguration := session.getBeaconConfiguration()
-			newConfiguration := &BeaconConfiguration{
-				multiplicity:        0,
-				dataCollectionLevel: currentConfiguration.dataCollectionLevel,
-				crashReportingLevel: currentConfiguration.crashReportingLevel,
-			}
-			session.updateBeaconConfiguration(newConfiguration)
-			continue
-		}*/
-
 		statusResponse = context.httpClient.sendNewSessionRequest()
-
-		if statusResponse != nil {
-			if statusResponse.responseCode < 400 {
-				currentConfiguration := session.getBeaconConfiguration()
-				newConfiguration := &BeaconConfiguration{
-					multiplicity:        statusResponse.multiplicity,
-					dataCollectionLevel: currentConfiguration.dataCollectionLevel,
-					crashReportingLevel: currentConfiguration.crashReportingLevel,
-				}
-				session.updateBeaconConfiguration(newConfiguration)
-
-			}
+		if statusResponse.responseCode < 400 {
+			// session.updateServerConfiguration()
+			// TODO: Actually do this based on the response
+			session.beacon.config.serverConfigurationSet = true
+			session.beaconConfigurationSet = true
 		}
-
 	}
 
 	return statusResponse
@@ -197,8 +179,7 @@ func (b *beaconSendingCaptureOnState) sendFinishedSessions(context *BeaconSender
 			context.removeSession(finishedSession)
 			statusResponse = finishedSession.sendBeacon(context.httpClient)
 			finishedSession.clearCapturedData()
-			finishedSession.End()
-
+			finishedSession.close()
 		}
 	}
 

@@ -48,7 +48,7 @@ func (b *BeaconSender) startSession(session *session) {
 
 }
 
-func (b *BeaconSender) finishSession(session Session) {
+func (b *BeaconSender) finishSession(session *session) {
 	b.log.Debug("BeaconSender finishSession()")
 
 	b.context.finishSession(session)
@@ -125,7 +125,7 @@ type Beacon struct {
 
 	nextID           uint64
 	sessionNumber    int
-	sessionStartTime int
+	sessionStartTime time.Time
 
 	beaconConfiguration BeaconConfiguration
 
@@ -136,7 +136,7 @@ func NewBeacon(log *log.Logger, beaconCache *beaconCache, config *Configuration,
 	b := new(Beacon)
 
 	b.sessionNumber = b.config.createSessionNumber()
-	b.sessionStartTime = b.config.makeTimestamp()
+	b.sessionStartTime = time.Now()
 	b.log = log
 	b.beaconCache = beaconCache
 	b.config = config
@@ -152,7 +152,7 @@ func NewBeaconWithTimeAndDevice(log *log.Logger, beaconCache *beaconCache, confi
 	b := new(Beacon)
 
 	b.sessionNumber = b.config.createSessionNumber()
-	b.sessionStartTime = TimeToMillis(timestamp)
+	b.sessionStartTime = timestamp
 	b.log = log
 	b.beaconCache = beaconCache
 	b.config = config
@@ -170,7 +170,7 @@ func NewBeaconWithTime(log *log.Logger, beaconCache *beaconCache, config *Config
 	b := new(Beacon)
 
 	b.sessionNumber = b.config.createSessionNumber()
-	b.sessionStartTime = TimeToMillis(timestamp)
+	b.sessionStartTime = timestamp
 	b.log = log
 	b.beaconCache = beaconCache
 	b.config = config
@@ -189,14 +189,14 @@ func (b *Beacon) startSession() {
 	b.buildBasicEventData(&eventBuilder, EventTypeSESSION_START, "")
 
 	b.addKeyValuePair(&eventBuilder, BEACON_KEY_PARENT_ACTION_ID, "0")
-	b.addKeyValuePair(&eventBuilder, BEACON_KEY_START_SEQUENCE_NUMBER, strconv.Itoa(b.createSequenceNumber()))
+	b.addKeyValuePair(&eventBuilder, BEACON_KEY_START_SEQUENCE_NUMBER, strconv.Itoa(b.CreateSequenceNumber()))
 	b.addKeyValuePair(&eventBuilder, BEACON_KEY_TIME_0, "0")
 
 	b.addEventData(b.sessionStartTime, &eventBuilder)
 
 }
 
-func (b *Beacon) getCurrentTimestamp() int {
+func (b *Beacon) GetCurrentTimestamp() int {
 	return b.config.makeTimestamp()
 
 }
@@ -208,43 +208,59 @@ func (b *Beacon) endSession(session *session) {
 	b.buildBasicEventData(&eventBuilder, EventTypeSESSION_END, "")
 
 	b.addKeyValuePair(&eventBuilder, BEACON_KEY_PARENT_ACTION_ID, strconv.Itoa(0))
-	b.addKeyValuePair(&eventBuilder, BEACON_KEY_START_SEQUENCE_NUMBER, strconv.Itoa(b.createSequenceNumber()))
-	b.addKeyValuePair(&eventBuilder, BEACON_KEY_TIME_0, strconv.Itoa(b.getTimeSinceSessionStartTime(session.endTime)))
+	b.addKeyValuePair(&eventBuilder, BEACON_KEY_START_SEQUENCE_NUMBER, strconv.Itoa(b.CreateSequenceNumber()))
+	b.addKeyValuePair(&eventBuilder, BEACON_KEY_TIME_0, strconv.Itoa(DurationToMillis(b.getTimeSinceSessionStartTime(session.endTime))))
 
 	b.addEventData(session.endTime, &eventBuilder)
 
 }
 
-func (b *Beacon) addAction(action *action) {
+func (b *Beacon) AddRootAction(r *RootAction) {
 
 	var actionBuilder strings.Builder
 
-	b.buildBasicEventData(&actionBuilder, EventTypeACTION, action.name)
+	b.buildBasicEventData(&actionBuilder, EventTypeACTION, r.name)
 
-	b.addKeyValuePair(&actionBuilder, BEACON_KEY_ACTION_ID, strconv.Itoa(action.ID))
-	b.addKeyValuePair(&actionBuilder, BEACON_KEY_PARENT_ACTION_ID, strconv.Itoa(action.getParentActionID()))
-	b.addKeyValuePair(&actionBuilder, BEACON_KEY_START_SEQUENCE_NUMBER, strconv.Itoa(action.startSequenceNo))
-	b.addKeyValuePair(&actionBuilder, BEACON_KEY_TIME_0, strconv.Itoa(b.getTimeSinceSessionStartTime(action.startTime)))
-	b.addKeyValuePair(&actionBuilder, BEACON_KEY_END_SEQUENCE_NUMBER, strconv.Itoa(action.endSequenceNo))
-	b.addKeyValuePair(&actionBuilder, BEACON_KEY_TIME_1, strconv.Itoa(action.endTime-action.startTime))
+	b.addKeyValuePair(&actionBuilder, BEACON_KEY_ACTION_ID, strconv.Itoa(r.id))
+	b.addKeyValuePair(&actionBuilder, BEACON_KEY_PARENT_ACTION_ID, strconv.Itoa(r.parentActionID))
+	b.addKeyValuePair(&actionBuilder, BEACON_KEY_START_SEQUENCE_NUMBER, strconv.Itoa(r.startSequenceNo))
+	b.addKeyValuePair(&actionBuilder, BEACON_KEY_TIME_0, strconv.Itoa(DurationToMillis(b.getTimeSinceSessionStartTime(r.startTime))))
+	b.addKeyValuePair(&actionBuilder, BEACON_KEY_END_SEQUENCE_NUMBER, strconv.Itoa(r.endSequenceNo))
+	b.addKeyValuePair(&actionBuilder, BEACON_KEY_TIME_1, strconv.Itoa(DurationToMillis(r.endTime.Sub(r.startTime))))
 
-	b.addActionData(action.startTime, &actionBuilder)
+	b.addActionData(r.startTime, &actionBuilder)
 }
 
-func (b *Beacon) addActionData(timestamp int, sb *strings.Builder) {
+func (b *Beacon) AddLeafAction(r *LeafAction) {
+
+	var actionBuilder strings.Builder
+
+	b.buildBasicEventData(&actionBuilder, EventTypeACTION, r.name)
+
+	b.addKeyValuePair(&actionBuilder, BEACON_KEY_ACTION_ID, strconv.Itoa(r.id))
+	b.addKeyValuePair(&actionBuilder, BEACON_KEY_PARENT_ACTION_ID, strconv.Itoa(r.parentActionID))
+	b.addKeyValuePair(&actionBuilder, BEACON_KEY_START_SEQUENCE_NUMBER, strconv.Itoa(r.startSequenceNo))
+	b.addKeyValuePair(&actionBuilder, BEACON_KEY_TIME_0, strconv.Itoa(DurationToMillis(b.getTimeSinceSessionStartTime(r.startTime))))
+	b.addKeyValuePair(&actionBuilder, BEACON_KEY_END_SEQUENCE_NUMBER, strconv.Itoa(r.endSequenceNo))
+	b.addKeyValuePair(&actionBuilder, BEACON_KEY_TIME_1, strconv.Itoa(DurationToMillis(r.endTime.Sub(r.startTime))))
+
+	b.addActionData(r.startTime, &actionBuilder)
+}
+
+func (b *Beacon) addActionData(timestamp time.Time, sb *strings.Builder) {
 	b.beaconCache.addActionData(b.sessionNumber, timestamp, sb.String())
 }
 
-func (b *Beacon) getTimeSinceSessionStartTime(timestamp int) int {
-	return timestamp - b.sessionStartTime
+func (b *Beacon) getTimeSinceSessionStartTime(timestamp time.Time) time.Duration {
+	return timestamp.Sub(b.sessionStartTime)
 }
 
-func (b *Beacon) createSequenceNumber() int {
+func (b *Beacon) CreateSequenceNumber() int {
 	atomic.AddUint64(&b.nextSequenceNumber, 1)
 	return int(b.nextSequenceNumber)
 }
 
-func (b *Beacon) createID() int {
+func (b *Beacon) CreateID() int {
 	atomic.AddUint64(&b.nextID, 1)
 	return int(b.nextID)
 }
@@ -262,7 +278,7 @@ func (b *Beacon) buildBasicEventData(sb *strings.Builder, eventType EventType, n
 
 }
 
-func (b *Beacon) addEventData(timestamp int, sb *strings.Builder) {
+func (b *Beacon) addEventData(timestamp time.Time, sb *strings.Builder) {
 	b.beaconCache.addEventData(b.sessionNumber, timestamp, sb.String())
 }
 
@@ -353,7 +369,7 @@ func (b *Beacon) createTimestampData() string {
 	var sb strings.Builder
 
 	b.addKeyValuePair(&sb, BEACON_KEY_TRANSMISSION_TIME, strconv.Itoa(b.config.makeTimestamp()))
-	b.addKeyValuePair(&sb, BEACON_KEY_SESSION_START_TIME, strconv.Itoa(b.sessionStartTime))
+	b.addKeyValuePair(&sb, BEACON_KEY_SESSION_START_TIME, strconv.Itoa(TimeToMillis(b.sessionStartTime)))
 
 	return sb.String()
 }
@@ -402,10 +418,10 @@ func (b *Beacon) identifyUser(userTag string) {
 
 	b.buildBasicEventData(&sb, EventTypeIDENTIFY_USER, userTag)
 
-	timestamp := b.config.makeTimestamp()
+	timestamp := time.Now()
 	b.addKeyValuePair(&sb, BEACON_KEY_PARENT_ACTION_ID, strconv.Itoa(0))
-	b.addKeyValuePair(&sb, BEACON_KEY_START_SEQUENCE_NUMBER, strconv.Itoa(b.createSequenceNumber()))
-	b.addKeyValuePair(&sb, BEACON_KEY_TIME_0, strconv.Itoa(b.getTimeSinceSessionStartTime(timestamp)))
+	b.addKeyValuePair(&sb, BEACON_KEY_START_SEQUENCE_NUMBER, strconv.Itoa(b.CreateSequenceNumber()))
+	b.addKeyValuePair(&sb, BEACON_KEY_TIME_0, strconv.Itoa(DurationToMillis(b.getTimeSinceSessionStartTime(timestamp))))
 
 	b.addEventData(timestamp, &sb)
 
@@ -457,33 +473,31 @@ func (b *Beacon) addWebRequest(parentID int, w *WebRequestTracer) {
 	b.buildBasicEventData(&sb, EventTypeWEBREQUEST, w.url)
 	b.addKeyValuePair(&sb, BEACON_KEY_PARENT_ACTION_ID, strconv.Itoa(parentID))
 	b.addKeyValuePair(&sb, BEACON_KEY_START_SEQUENCE_NUMBER, strconv.Itoa(w.startSequenceNo))
-	b.addKeyValuePair(&sb, BEACON_KEY_TIME_0, strconv.Itoa(b.getTimeSinceSessionStartTime(startTime)))
+	b.addKeyValuePair(&sb, BEACON_KEY_TIME_0, strconv.Itoa(DurationToMillis(b.getTimeSinceSessionStartTime(w.startTime))))
 	b.addKeyValuePair(&sb, BEACON_KEY_END_SEQUENCE_NUMBER, strconv.Itoa(w.endSequenceNo))
 	b.addKeyValuePair(&sb, BEACON_KEY_TIME_1, strconv.Itoa(endTime-startTime))
 	b.addKeyValuePair(&sb, BEACON_KEY_WEBREQUEST_BYTES_SENT, strconv.Itoa(w.BytesSent))
 	b.addKeyValuePair(&sb, BEACON_KEY_WEBREQUEST_BYTES_RECEIVED, strconv.Itoa(w.BytesReceived))
 	b.addKeyValuePair(&sb, BEACON_KEY_WEBREQUEST_RESPONSECODE, strconv.Itoa(w.ResponseCode))
 
-	b.addEventData(startTime, &sb)
+	b.addEventData(w.startTime, &sb)
 
 }
 
-func (b *Beacon) buildEventAt(sb *strings.Builder, eventType EventType, name string, parentActionID int, timestamp time.Time) int {
+func (b *Beacon) buildEventAt(sb *strings.Builder, eventType EventType, name string, parentActionID int, timestamp time.Time) {
 	b.buildBasicEventData(sb, eventType, name)
-	eventTimestamp := TimeToMillis(timestamp)
 	b.addKeyValuePair(sb, BEACON_KEY_PARENT_ACTION_ID, strconv.Itoa(parentActionID))
-	b.addKeyValuePair(sb, BEACON_KEY_START_SEQUENCE_NUMBER, strconv.Itoa(b.createSequenceNumber()))
-	b.addKeyValuePair(sb, BEACON_KEY_TIME_0, strconv.Itoa(b.getTimeSinceSessionStartTime(eventTimestamp)))
+	b.addKeyValuePair(sb, BEACON_KEY_START_SEQUENCE_NUMBER, strconv.Itoa(b.CreateSequenceNumber()))
+	b.addKeyValuePair(sb, BEACON_KEY_TIME_0, strconv.Itoa(DurationToMillis(b.getTimeSinceSessionStartTime(timestamp))))
 
-	return eventTimestamp
 }
 
-func (b *Beacon) reportValueAt(parentActionID int, key string, value string, timestamp time.Time) {
+func (b *Beacon) ReportValueAt(parentActionID int, key string, value string, timestamp time.Time) {
 	var sb strings.Builder
 
-	eventTimestamp := b.buildEventAt(&sb, EventTypeVALUE_STRING, key, parentActionID, timestamp)
+	b.buildEventAt(&sb, EventTypeVALUE_STRING, key, parentActionID, timestamp)
 	b.addKeyValuePair(&sb, BEACON_KEY_VALUE, value)
 
-	b.addEventData(eventTimestamp, &sb)
+	b.addEventData(timestamp, &sb)
 
 }

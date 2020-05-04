@@ -2,6 +2,7 @@ package openkitgo
 
 import (
 	log "github.com/sirupsen/logrus"
+	"sync"
 	"time"
 )
 
@@ -29,13 +30,87 @@ type Session interface {
 	clearCapturedData()
 }
 
+const MAX_NEW_SESSION_REQUESTS = 4
+
+type sessionState struct {
+	session        *session
+	finishing      bool
+	finished       bool
+	triedForEnding bool
+	lock           sync.Mutex
+}
+
+func newSessionState(s *session) *sessionState {
+	st := new(sessionState)
+	st.session = s
+	return st
+}
+
+func (st *sessionState) wasTriedForEnding() bool {
+	st.lock.Lock()
+	defer st.lock.Unlock()
+	return st.triedForEnding
+}
+
+func (st *sessionState) isConfigured() bool {
+	st.lock.Lock()
+	defer st.lock.Unlock()
+	return st.session.beacon.config.isServerConfigurationSet()
+}
+
+func (st *sessionState) isConfiguredAndFinished() bool {
+	st.lock.Lock()
+	defer st.lock.Unlock()
+	return st.isConfigured() && st.finished
+}
+
+func (st *sessionState) isConfiguredAndOpen() bool {
+	st.lock.Lock()
+	defer st.lock.Unlock()
+	return st.isConfigured() && !st.finished
+}
+
+func (st *sessionState) isFinished() bool {
+	st.lock.Lock()
+	defer st.lock.Unlock()
+	return st.finished
+}
+
+func (st *sessionState) isFinishingOrFinished() bool {
+	st.lock.Lock()
+	defer st.lock.Unlock()
+	return st.finishing || st.finished
+}
+
+func (st *sessionState) markAsIsFinishing() bool {
+
+	if st.isFinishingOrFinished() {
+		return false
+	}
+	st.finishing = true
+	return true
+}
+
+func (st *sessionState) markAsFinished() {
+	st.lock.Lock()
+	defer st.lock.Unlock()
+	st.finished = true
+}
+
+func (st *sessionState) markAsWasTriedForEnding() {
+	st.lock.Lock()
+	defer st.lock.Unlock()
+	st.triedForEnding = true
+}
+
 type session struct {
 	ID      int
-	endTime int
+	endTime time.Time
 
 	beaconSender *BeaconSender
 	beacon       *Beacon
 	log          *log.Logger
+	children     []OpenKitObject
 
 	openRootActions map[int]Action
 
@@ -45,17 +120,20 @@ type session struct {
 
 	position      int
 	sessionNumber int
+
+	state *sessionState
+
+	lock sync.Mutex
 }
 
 func newSession(log *log.Logger, beaconSender *BeaconSender, beacon *Beacon) Session {
 	s := new(session)
 
 	s.log = log
-	s.beaconSender = beaconSender
 	s.beacon = beacon
-	s.ID = s.beacon.config.createSessionNumber()
-	s.openRootActions = make(map[int]Action)
-
+	s.beaconSender = beaconSender
+	s.state = newSessionState(s)
+	s.ID = beacon.sessionNumber
 	s.numNewSessionRequestsLeft = 4
 	beaconSender.startSession(s)
 	beacon.startSession()
@@ -68,16 +146,16 @@ func (s *session) clearCapturedData() {
 }
 
 func (s *session) EnterAction(actionName string) Action {
-	s.log.Debugf("Session.EnterAction(%s)", actionName)
+	s.log.WithFields(log.Fields{"actionName": actionName}).Debugf("Session.EnterAction")
 
-	return newRootAction(s.log, s.beacon, actionName, s.openRootActions)
+	return newRootAction(s.log, s, actionName, s.beacon)
 
 }
 
 func (s *session) EnterActionAt(actionName string, timestamp time.Time) Action {
 	s.log.Debugf("Session.EnterActionAt(%s, %s)", actionName, timestamp.String())
 
-	return newRootActionAt(s.log, s.beacon, actionName, s.openRootActions, timestamp)
+	return newRootActionAt(s.log, s, actionName, s.beacon, timestamp)
 
 }
 
@@ -122,31 +200,37 @@ func (s *session) IdentifyUser(userTag string) {
 func (s *session) End() {
 	s.log.Debugf("Session.End()")
 
-	s.endTime = s.beacon.getCurrentTimestamp()
+	if !s.state.markAsIsFinishing() {
+		return
+	}
 
-	for len(s.openRootActions) != 0 {
-		for _, a := range s.openRootActions {
-			a.LeaveAction()
-		}
+	children := s.getCopyOfChildObjects()
+	for _, c := range children {
+		c.close()
 	}
 
 	s.beacon.endSession(s)
 	s.beaconSender.finishSession(s)
+	s.state.markAsFinished()
+
 }
 
-func (s *session) EndAt(endTime time.Time) {
-	s.log.Debugf("Session.EndAt(%s)", endTime)
+func (s *session) EndAt(timestamp time.Time) {
+	s.log.Debugf("Session.End()")
 
-	s.endTime = TimeToMillis(endTime)
-
-	for len(s.openRootActions) != 0 {
-		for _, a := range s.openRootActions {
-			a.LeaveActionAt(endTime)
-		}
+	if !s.state.markAsIsFinishing() {
+		return
 	}
 
+	children := s.getCopyOfChildObjects()
+	for _, c := range children {
+		c.close()
+	}
+
+	s.endTime = timestamp
 	s.beacon.endSession(s)
 	s.beaconSender.finishSession(s)
+	s.state.markAsFinished()
 }
 
 func (s *session) getActionID() int {
@@ -154,13 +238,55 @@ func (s *session) getActionID() int {
 }
 
 func (s *session) TraceWebRequest(url string) *WebRequestTracer {
-	// TODO : Store in children
 	w := NewWebRequestTracer(s.log, s, url, s.beacon)
+	s.storeChildInList(w)
 	return w
 }
 
 func (s *session) TraceWebRequestAt(url string, timestamp time.Time) *WebRequestTracer {
-	// TODO : Store in children
 	w := NewWebRequestTracerAt(s.log, s, url, s.beacon, timestamp)
+	s.storeChildInList(w)
 	return w
+}
+
+func (s *session) storeChildInList(child OpenKitObject) {
+	s.lock.Lock()
+	defer s.lock.Unlock()
+	s.children = append(s.children, child)
+}
+
+func (s *session) removeChildFromList(child OpenKitObject) bool {
+	tmp := s.children[:0]
+	for _, c := range s.children {
+		if child != c {
+			tmp = append(tmp, c)
+		}
+	}
+	s.children = tmp
+	return true
+}
+
+func (s *session) getCopyOfChildObjects() []OpenKitObject {
+	s.lock.Lock()
+	defer s.lock.Unlock()
+	copied := make([]OpenKitObject, len(s.children))
+	copy(copied, s.children)
+	return copied
+}
+
+func (s *session) close() {
+	s.End()
+}
+
+func (s *session) onChildClosed(child OpenKitObject) {
+	s.lock.Lock()
+	defer s.lock.Unlock()
+	s.removeChildFromList(child)
+
+}
+
+func (s *session) getChildCount() int {
+	s.lock.Lock()
+	s.lock.Unlock()
+	return len(s.children)
 }

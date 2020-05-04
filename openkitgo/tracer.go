@@ -40,7 +40,7 @@ func NewWebRequestTracer(log *log.Logger, parent OpenKitComposite, url string, b
 	w.beacon = beacon
 
 	w.parentActionID = parent.getActionID()
-	w.startSequenceNo = beacon.createSequenceNumber()
+	w.startSequenceNo = beacon.CreateSequenceNumber()
 
 	w.tag = beacon.createTag(w.parentActionID, w.startSequenceNo)
 	w.startTime = time.Now()
@@ -56,7 +56,7 @@ func NewWebRequestTracerAt(log *log.Logger, parent OpenKitComposite, url string,
 	w.beacon = beacon
 
 	w.parentActionID = parent.getActionID()
-	w.startSequenceNo = beacon.createSequenceNumber()
+	w.startSequenceNo = beacon.CreateSequenceNumber()
 
 	w.tag = beacon.createTag(w.parentActionID, w.startSequenceNo)
 	w.startTime = timestamp
@@ -70,7 +70,7 @@ func (w *WebRequestTracer) Start() *WebRequestTracer {
 
 func (w *WebRequestTracer) Stop(responseCode int) {
 	w.ResponseCode = responseCode
-	w.endSequenceNo = w.beacon.createSequenceNumber()
+	w.endSequenceNo = w.beacon.CreateSequenceNumber()
 	w.endTime = time.Now()
 
 	w.beacon.addWebRequest(w.parentActionID, w)
@@ -81,11 +81,15 @@ func (w *WebRequestTracer) Stop(responseCode int) {
 
 func (w *WebRequestTracer) StopAt(responseCode int, timestamp time.Time) {
 	w.ResponseCode = responseCode
-	w.endSequenceNo = w.beacon.createSequenceNumber()
+	w.endSequenceNo = w.beacon.CreateSequenceNumber()
 	w.endTime = timestamp
 
 	w.beacon.addWebRequest(w.parentActionID, w)
 	// w.parent.onChildClosed(w)
 	w.parent = nil
 
+}
+
+func (w *WebRequestTracer) close() {
+	w.Stop(w.ResponseCode)
 }
