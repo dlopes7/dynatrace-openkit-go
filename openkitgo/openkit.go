@@ -72,6 +72,8 @@ type OpenKitBuilder interface {
 	WithOperatingSystem(string) OpenKitBuilder
 	WithManufacturer(string) OpenKitBuilder
 	WithModelID(string) OpenKitBuilder
+	WithVerifyCertificates(bool) OpenKitBuilder
+	WithProxyAddress(string) OpenKitBuilder
 	Build() OpenKit
 }
 
@@ -88,6 +90,8 @@ type openKitBuilder struct {
 	operatingSystem    string
 	manufacturer       string
 	modelID            string
+	proxyAddress       string
+	verifyCertificates bool
 }
 
 func NewOpenKitBuilder(endpointURL string, applicationID string, deviceID int) OpenKitBuilder {
@@ -134,10 +138,29 @@ func (ob *openKitBuilder) WithModelID(modelID string) OpenKitBuilder {
 	return ob
 }
 
-func (ob *openKitBuilder) Build() OpenKit {
-	// TODO - Set Defaults manually here if they were not set?
+func (ob *openKitBuilder) WithVerifyCertificates(v bool) OpenKitBuilder {
+	ob.verifyCertificates = v
+	return ob
+}
 
-	c := NewConfiguration(ob.endpointURL, ob.applicationName, ob.applicationID, ob.applicationVersion, ob.deviceID, ob.operatingSystem, ob.manufacturer, ob.modelID)
+func (ob *openKitBuilder) WithProxyAddress(proxyAddress string) OpenKitBuilder {
+	ob.proxyAddress = proxyAddress
+	return ob
+}
+
+func (ob *openKitBuilder) Build() OpenKit {
+
+	c := NewConfiguration(ob.endpointURL,
+		ob.applicationName,
+		ob.applicationID,
+		ob.applicationVersion,
+		ob.deviceID,
+		ob.operatingSystem,
+		ob.manufacturer,
+		ob.modelID,
+		ob.proxyAddress,
+		ob.verifyCertificates)
+
 	client := NewHttpClient(ob.log, *c.httpClientConfiguration)
 
 	b := NewBeaconSender(ob.log, c, client)

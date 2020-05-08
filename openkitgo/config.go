@@ -42,7 +42,16 @@ type Configuration struct {
 	lock sync.Mutex
 }
 
-func NewConfiguration(endpointURL string, applicationName string, applicationID string, applicationVersion string, deviceID int, operatingSystem string, manufacturer string, modelID string) *Configuration {
+func NewConfiguration(endpointURL string,
+	applicationName string,
+	applicationID string,
+	applicationVersion string,
+	deviceID int,
+	operatingSystem string,
+	manufacturer string,
+	modelID string,
+	proxyAddress string,
+	verifyCertificates bool) *Configuration {
 
 	// TODO - Implement BeaconCacheConfiguration
 	// TODO - Implement getTrustManager
@@ -63,9 +72,11 @@ func NewConfiguration(endpointURL string, applicationName string, applicationID 
 	}
 
 	c.httpClientConfiguration = &HTTPClientConfiguration{
-		serverID:      1,
-		applicationID: applicationID,
-		baseURL:       endpointURL,
+		serverID:           1,
+		applicationID:      applicationID,
+		baseURL:            endpointURL,
+		proxyAddress:       proxyAddress,
+		verifyCertificates: verifyCertificates,
 	}
 
 	c.beaconConfiguration = &BeaconConfiguration{
@@ -132,9 +143,11 @@ func (c *Configuration) isServerConfigurationSet() bool {
 }
 
 type HTTPClientConfiguration struct {
-	baseURL       string
-	applicationID string
-	serverID      int
+	baseURL            string
+	applicationID      string
+	serverID           int
+	proxyAddress       string
+	verifyCertificates bool
 }
 
 type BeaconConfiguration struct {

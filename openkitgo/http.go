@@ -3,9 +3,11 @@ package openkitgo
 import (
 	"bytes"
 	"compress/gzip"
+	"crypto/tls"
 	log "github.com/sirupsen/logrus"
 	"io/ioutil"
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 )
@@ -41,10 +43,12 @@ const (
 )
 
 type HttpClient struct {
-	monitorURL    string
-	newSessionURL string
-	serverID      int
-	log           *log.Logger
+	monitorURL         string
+	newSessionURL      string
+	serverID           int
+	log                *log.Logger
+	proxyAddress       string
+	verifyCertificates bool
 }
 
 func NewHttpClient(log *log.Logger, configuration HTTPClientConfiguration) *HttpClient {
@@ -54,7 +58,8 @@ func NewHttpClient(log *log.Logger, configuration HTTPClientConfiguration) *Http
 	httpClient.serverID = configuration.serverID
 	httpClient.monitorURL = buildMonitorURL(configuration.baseURL, configuration.applicationID, httpClient.serverID)
 	httpClient.newSessionURL = buildNewSessionURL(configuration.baseURL, configuration.applicationID, httpClient.serverID)
-
+	httpClient.proxyAddress = configuration.proxyAddress
+	httpClient.verifyCertificates = configuration.verifyCertificates
 	return httpClient
 
 }
@@ -117,10 +122,22 @@ func (c *HttpClient) sendBeaconRequest(clientIPAddress string, body []byte) *Sta
 	return response
 }
 
-func (c *HttpClient) sendRequest(requestType string, url string, clientIPAddress *string, data []byte, method string) (*StatusResponse, error) {
-	c.log.Debugf("sendRequest() - HTTP %s Request: %s", requestType, url)
+func (c *HttpClient) sendRequest(requestType string, urlAddress string, clientIPAddress *string, data []byte, method string) (*StatusResponse, error) {
+	c.log.Debugf("sendRequest() - HTTP %s Request: %s", requestType, urlAddress)
 
-	client := http.Client{}
+	tr := &http.Transport{
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: !c.verifyCertificates},
+	}
+	if c.proxyAddress != "" {
+		proxyUrl, err := url.Parse(c.proxyAddress)
+		if err != nil {
+			c.log.WithFields(log.Fields{"error": err.Error()}).Error("Could not parse the proxy url")
+		} else {
+			tr.Proxy = http.ProxyURL(proxyUrl)
+		}
+	}
+
+	client := http.Client{Transport: tr}
 	var buf bytes.Buffer
 
 	if data != nil {
@@ -137,7 +154,7 @@ func (c *HttpClient) sendRequest(requestType string, url string, clientIPAddress
 
 	}
 
-	request, err := http.NewRequest(method, url, &buf)
+	request, err := http.NewRequest(method, urlAddress, &buf)
 	if err != nil {
 		c.log.Error(err.Error())
 		return nil, err
