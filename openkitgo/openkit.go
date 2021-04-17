@@ -16,7 +16,7 @@ const (
 type OpenKit interface {
 	CreateSession(string) Session
 	CreateSessionWithTime(string, time.Time) Session
-	CreateSessionWithTimeAndDevice(string, time.Time, string) Session
+	CreateSessionWithTimeAndDevice(string, time.Time, int64) Session
 	// waitForInitCompletion(int) bool
 	// isInitialized() bool
 }
@@ -51,9 +51,9 @@ func (o *openkit) CreateSessionWithTime(clientIPAddress string, timestamp time.T
 	return newSession(o.log, o.beaconSender, beacon)
 }
 
-func (o *openkit) CreateSessionWithTimeAndDevice(clientIPAddress string, timestamp time.Time, deviceID string) Session {
+func (o *openkit) CreateSessionWithTimeAndDevice(clientIPAddress string, timestamp time.Time, deviceID int64) Session {
 
-	o.log.Debugf("Creating session with IP address %s", clientIPAddress)
+	o.log.Debugf("Creating session with IP address %s and deviceID: %d", clientIPAddress, deviceID)
 
 	beacon := NewBeaconWithTimeAndDevice(o.log, o.beaconCache, o.configuration, clientIPAddress, timestamp, deviceID)
 
@@ -83,7 +83,7 @@ type openKitBuilder struct {
 
 	endpointURL   string
 	applicationID string
-	deviceID      int
+	deviceID      int64
 
 	applicationName    string
 	applicationVersion string
@@ -94,7 +94,7 @@ type openKitBuilder struct {
 	verifyCertificates bool
 }
 
-func NewOpenKitBuilder(endpointURL string, applicationID string, deviceID int) OpenKitBuilder {
+func NewOpenKitBuilder(endpointURL string, applicationID string, deviceID int64) OpenKitBuilder {
 
 	return &openKitBuilder{
 		endpointURL:   endpointURL,

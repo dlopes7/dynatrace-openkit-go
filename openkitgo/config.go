@@ -2,7 +2,6 @@ package openkitgo
 
 import (
 	"math/rand"
-	"strconv"
 	"sync"
 	"time"
 )
@@ -21,7 +20,7 @@ type Configuration struct {
 
 	applicationName string
 	applicationID   string
-	deviceID        string
+	deviceID        int64
 	endpointURL     string
 
 	capture        bool
@@ -46,7 +45,7 @@ func NewConfiguration(endpointURL string,
 	applicationName string,
 	applicationID string,
 	applicationVersion string,
-	deviceID int,
+	deviceID int64,
 	operatingSystem string,
 	manufacturer string,
 	modelID string,
@@ -61,7 +60,7 @@ func NewConfiguration(endpointURL string,
 	c.applicationName = applicationName
 	c.applicationID = applicationID
 	c.applicationVersion = applicationVersion
-	c.deviceID = strconv.Itoa(deviceID)
+	c.deviceID = deviceID
 
 	c.maxBeaconSize = DEFAULT_MAX_BEACON_SIZE
 

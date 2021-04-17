@@ -148,7 +148,7 @@ func NewBeacon(log *log.Logger, beaconCache *beaconCache, config *Configuration,
 	return b
 }
 
-func NewBeaconWithTimeAndDevice(log *log.Logger, beaconCache *beaconCache, config *Configuration, clientIPAddress string, timestamp time.Time, deviceID string) *Beacon {
+func NewBeaconWithTimeAndDevice(log *log.Logger, beaconCache *beaconCache, config *Configuration, clientIPAddress string, timestamp time.Time, deviceID int64) *Beacon {
 	b := new(Beacon)
 
 	b.sessionNumber = b.config.createSessionNumber()
@@ -328,7 +328,7 @@ func (b *Beacon) createImmutableBasicBeaconData() string {
 	b.addKeyValuePair(&basicBeaconBuilder, BEACON_KEY_AGENT_TECHNOLOGY_TYPE, AGENT_TECHNOLOGY_TYPE)
 
 	// device/visitor ID, session number and IP address
-	b.addKeyValuePair(&basicBeaconBuilder, BEACON_KEY_VISITOR_ID, b.config.deviceID)
+	b.addKeyValuePair(&basicBeaconBuilder, BEACON_KEY_VISITOR_ID, strconv.FormatInt(b.config.deviceID, 2))
 	b.addKeyValuePair(&basicBeaconBuilder, BEACON_KEY_SESSION_NUMBER, strconv.Itoa(b.sessionNumber))
 	b.addKeyValuePair(&basicBeaconBuilder, BEACON_KEY_CLIENT_IP_ADDRESS, b.clientIPAddress)
 
