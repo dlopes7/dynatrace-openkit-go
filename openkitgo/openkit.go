@@ -1,6 +1,7 @@
 package openkitgo
 
 import (
+	"context"
 	log "github.com/sirupsen/logrus"
 	"sync"
 	"time"
@@ -17,7 +18,7 @@ type OpenKit interface {
 	CreateSession(string) Session
 	CreateSessionWithTime(string, time.Time) Session
 	CreateSessionWithTimeAndDevice(string, time.Time, int64) Session
-	// waitForInitCompletion(int) bool
+	WaitForInitCompletion(int) bool
 	// isInitialized() bool
 }
 
@@ -62,6 +63,21 @@ func (o *openkit) CreateSessionWithTimeAndDevice(clientIPAddress string, timesta
 
 func (o *openkit) initialize() {
 	o.beaconSender.initialize()
+}
+
+func (o *openkit) WaitForInitCompletion(timeOutMillis int) bool {
+	o.beaconSender.initialize()
+	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(timeOutMillis)*time.Millisecond)
+	o.log.Infof("Trying to connect with a %dms timeout", timeOutMillis)
+	defer cancel()
+	for {
+		if o.beaconSender.context.initCompleted {
+			return o.beaconSender.context.initCompleted
+		}
+		if ctx.Err() != nil {
+			return false
+		}
+	}
 }
 
 type OpenKitBuilder interface {
