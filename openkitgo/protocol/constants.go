@@ -1,0 +1,10 @@
+package protocol
+
+const (
+	OPENKIT_VERSION       = "8.217.20300"
+	PROTOCOL_VERSION      = 3
+	PLATFORM_TYPE_OPENKIT = 1
+	AGENT_TECHNOLOGY_TYPE = "okgo"
+	ERROR_TECHNOLOGY_TYPE = "c"
+	RESPONSE_TYPE         = "json"
+)
