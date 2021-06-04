@@ -2,7 +2,7 @@ package configuration
 
 import "net/http"
 
-type HttpClient struct {
+type HttpClientConfiguration struct {
 	BaseURL       string
 	ServerID      int
 	ApplicationID string

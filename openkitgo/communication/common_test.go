@@ -15,7 +15,7 @@ var ctx *BeaconSendingContext
 func TestMain(m *testing.M) {
 	l := log.New()
 	l.SetLevel(log.DebugLevel)
-	c := configuration.HttpClient{
+	c := configuration.HttpClientConfiguration{
 		BaseURL:       "https://localhost:9999/mbeacon/e/eaa50379",
 		ServerID:      1,
 		ApplicationID: "98972aef-02ac-4ecb-be1e-a6698af2de60",

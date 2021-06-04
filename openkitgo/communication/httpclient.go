@@ -18,7 +18,7 @@ type RequestType string
 
 const (
 	STATUS      RequestType = "Status"
-	BEACON      RequestType = "Beacon"
+	BEACON      RequestType = "BeaconConfiguration"
 	NEW_SESSION RequestType = "NewSession"
 
 	REQUEST_TYPE_MOBILE             = "type=m"
@@ -52,7 +52,7 @@ type HttpClient struct {
 
 }
 
-func NewHttpClient(log *log.Logger, config configuration.HttpClient) HttpClient {
+func NewHttpClient(log *log.Logger, config configuration.HttpClientConfiguration) HttpClient {
 	return HttpClient{
 		monitorURL:    buildMonitorURL(config.BaseURL, config.ApplicationID, config.ServerID),
 		newSessionURL: buildNewSessionURL(config.BaseURL, config.ApplicationID, config.ServerID),

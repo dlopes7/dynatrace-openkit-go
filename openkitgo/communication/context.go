@@ -1,8 +1,8 @@
 package communication
 
 import (
-	"github.com/dlopes7/dynatrace-openkit-go/openkitgo"
 	"github.com/dlopes7/dynatrace-openkit-go/openkitgo/configuration"
+	"github.com/dlopes7/dynatrace-openkit-go/openkitgo/core"
 	"github.com/dlopes7/dynatrace-openkit-go/openkitgo/protocol"
 	log "github.com/sirupsen/logrus"
 	"sync"
@@ -19,8 +19,8 @@ type BeaconSendingContext struct {
 	mutex                   sync.Mutex
 	serverConfiguration     configuration.ServerConfiguration
 	lastResponseAttributes  protocol.ResponseAttributes
-	httpClientConfiguration configuration.HttpClient
-	sessions                chan openkitgo.Session
+	httpClientConfiguration configuration.HttpClientConfiguration
+	sessions                []*core.Session
 
 	shutdown int32 // atomic
 	initWg   sync.WaitGroup
@@ -34,7 +34,7 @@ type BeaconSendingContext struct {
 }
 
 func NewBeaconSendingContext(log *log.Logger,
-	httpClientConfiguration configuration.HttpClient) *BeaconSendingContext {
+	httpClientConfiguration configuration.HttpClientConfiguration) *BeaconSendingContext {
 
 	return &BeaconSendingContext{
 		log:                     log,
@@ -47,90 +47,90 @@ func NewBeaconSendingContext(log *log.Logger,
 
 }
 
-func (b *BeaconSendingContext) executeCurrentState() {
-	b.nextState = nil
-	b.currentState.execute(b)
+func (c *BeaconSendingContext) executeCurrentState() {
+	c.nextState = nil
+	c.currentState.execute(c)
 
-	if b.nextState != nil && b.nextState != b.currentState {
-		b.log.WithFields(log.Fields{"currentState": b.currentState, "nextState": b.nextState}).Debug("changing state")
+	if c.nextState != nil && c.nextState != c.currentState {
+		c.log.WithFields(log.Fields{"currentState": c.currentState, "nextState": c.nextState}).Debug("changing state")
 	}
-	b.currentState = b.nextState
+	c.currentState = c.nextState
 }
 
-func (b *BeaconSendingContext) getCurrentTimestamp() time.Time {
+func (c *BeaconSendingContext) getCurrentTimestamp() time.Time {
 	return time.Now()
 }
 
-func (b *BeaconSendingContext) getHttpClient() HttpClient {
-	return NewHttpClient(b.log, b.httpClientConfiguration)
+func (c *BeaconSendingContext) getHttpClient() HttpClient {
+	return NewHttpClient(c.log, c.httpClientConfiguration)
 }
 
-func (b *BeaconSendingContext) GetConfigurationTimestamp() time.Time {
-	b.mutex.Lock()
-	defer b.mutex.Unlock()
-	return b.lastResponseAttributes.Timestamp
+func (c *BeaconSendingContext) GetConfigurationTimestamp() time.Time {
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
+	return c.lastResponseAttributes.Timestamp
 }
 
-func (b *BeaconSendingContext) isCaptureOn() bool {
-	b.mutex.Lock()
-	defer b.mutex.Unlock()
-	return b.serverConfiguration.Capture
+func (c *BeaconSendingContext) isCaptureOn() bool {
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
+	return c.serverConfiguration.Capture
 }
 
-func (b *BeaconSendingContext) disableCapture() {
-	b.mutex.Lock()
-	defer b.mutex.Unlock()
-	b.serverConfiguration.Capture = false
+func (c *BeaconSendingContext) disableCapture() {
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
+	c.serverConfiguration.Capture = false
 }
 
-func (b *BeaconSendingContext) IsShutdownRequested() bool {
-	return atomic.LoadInt32(&b.shutdown) == 1
+func (c *BeaconSendingContext) IsShutdownRequested() bool {
+	return atomic.LoadInt32(&c.shutdown) == 1
 }
 
-func (b *BeaconSendingContext) handleStatusResponse(statusResponse protocol.StatusResponse) {
+func (c *BeaconSendingContext) handleStatusResponse(statusResponse protocol.StatusResponse) {
 	if statusResponse.ResponseCode >= 400 {
-		b.disableCapture()
+		c.disableCapture()
 		// TODO clearAllSessionData
 		return
 	}
 
-	b.updateFrom(statusResponse)
+	c.updateFrom(statusResponse)
 
-	if !b.isCaptureOn() {
+	if !c.isCaptureOn() {
 		// TODO clearAllSessionData
 	}
 
 }
 
-func (b *BeaconSendingContext) updateFrom(statusResponse protocol.StatusResponse) protocol.ResponseAttributes {
-	b.mutex.Lock()
-	defer b.mutex.Unlock()
+func (c *BeaconSendingContext) updateFrom(statusResponse protocol.StatusResponse) protocol.ResponseAttributes {
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
 	if statusResponse.ResponseCode >= 400 {
-		return b.lastResponseAttributes
+		return c.lastResponseAttributes
 	}
 
-	b.lastResponseAttributes = b.lastResponseAttributes.Merge(statusResponse.ResponseAttributes)
-	b.serverConfiguration = configuration.NewServerConfiguration(b.lastResponseAttributes)
-	b.httpClientConfiguration.ServerID = b.serverConfiguration.ServerID
+	c.lastResponseAttributes = c.lastResponseAttributes.Merge(statusResponse.ResponseAttributes)
+	c.serverConfiguration = configuration.NewServerConfiguration(c.lastResponseAttributes)
+	c.httpClientConfiguration.ServerID = c.serverConfiguration.ServerID
 
-	return b.lastResponseAttributes
+	return c.lastResponseAttributes
 }
 
-func (b *BeaconSendingContext) requestShutDown() {
-	atomic.StoreInt32(&b.shutdown, 0)
+func (c *BeaconSendingContext) requestShutDown() {
+	atomic.StoreInt32(&c.shutdown, 0)
 }
 
-func (b *BeaconSendingContext) WaitForInitTimeout(timeout time.Duration) bool {
-	if waitTimeout(&b.initWg, timeout) {
-		b.log.WithFields(log.Fields{"timeout": timeout}).Error("timed out waiting for init")
-		return b.initOk
+func (c *BeaconSendingContext) WaitForInitTimeout(timeout time.Duration) bool {
+	if waitTimeout(&c.initWg, timeout) {
+		c.log.WithFields(log.Fields{"timeout": timeout}).Error("timed out waiting for init")
+		return c.initOk
 	}
-	return b.initOk
+	return c.initOk
 }
 
-func (b *BeaconSendingContext) WaitForInit() bool {
-	b.initWg.Wait()
-	return b.initOk
+func (c *BeaconSendingContext) WaitForInit() bool {
+	c.initWg.Wait()
+	return c.initOk
 }
 
 func waitTimeout(wg *sync.WaitGroup, timeout time.Duration) bool {
@@ -145,4 +145,99 @@ func waitTimeout(wg *sync.WaitGroup, timeout time.Duration) bool {
 	case <-time.After(timeout):
 		return true
 	}
+}
+
+func (c *BeaconSendingContext) IsInitialized() bool {
+	return c.initOk
+}
+
+func (c *BeaconSendingContext) IsInTerminalState() bool {
+	return c.currentState.terminal()
+}
+
+func (c *BeaconSendingContext) GetSendInterval() time.Duration {
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
+	return c.serverConfiguration.SendInterval
+}
+
+func (c *BeaconSendingContext) GetLastServerConfiguration() configuration.ServerConfiguration {
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
+	return c.serverConfiguration
+}
+
+func (c *BeaconSendingContext) disableCaptureAndClear() {
+	c.disableCapture()
+	c.clearAllSessionData()
+}
+
+func (c *BeaconSendingContext) clearAllSessionData() {
+
+	var keepSessions []*core.Session
+
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
+	for _, session := range c.sessions {
+		session.ClearCapturedData()
+		if !session.State.IsFinished() {
+			keepSessions = append(keepSessions, session)
+		}
+	}
+	c.sessions = keepSessions
+}
+
+func (c *BeaconSendingContext) getAllNotConfiguredSessions() []*core.Session {
+
+	var filtered []*core.Session
+
+	for _, session := range c.sessions {
+		if !session.State.IsConfigured() {
+			filtered = append(filtered, session)
+		}
+	}
+	return filtered
+}
+
+func (c *BeaconSendingContext) getAllOpenAndConfiguredSessions() []*core.Session {
+
+	var filtered []*core.Session
+
+	for _, session := range c.sessions {
+		if !session.State.IsConfiguredAndOpen() {
+			filtered = append(filtered, session)
+		}
+	}
+	return filtered
+}
+
+func (c *BeaconSendingContext) getAllFinishedAndConfiguredSessions() []*core.Session {
+
+	var filtered []*core.Session
+
+	for _, session := range c.sessions {
+		if !session.State.IsConfiguredAndFinished() {
+			filtered = append(filtered, session)
+		}
+	}
+	return filtered
+}
+
+func (c *BeaconSendingContext) GetCurrentServerId() int {
+	return c.httpClientConfiguration.ServerID
+}
+
+func (c *BeaconSendingContext) AddSession(session *core.Session) {
+	c.sessions = append(c.sessions, session)
+}
+
+func (c *BeaconSendingContext) RemoveSession(session *core.Session) {
+	var keep []*core.Session
+
+	for _, s := range c.sessions {
+		if s != session {
+			keep = append(keep, s)
+		}
+	}
+	c.sessions = keep
 }

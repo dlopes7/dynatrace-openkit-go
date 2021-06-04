@@ -1,9 +1,10 @@
-package protocol
+package core
 
 import (
+	"fmt"
 	"github.com/dlopes7/dynatrace-openkit-go/openkitgo/caching"
 	"github.com/dlopes7/dynatrace-openkit-go/openkitgo/configuration"
-	"github.com/dlopes7/dynatrace-openkit-go/openkitgo/core"
+	"github.com/dlopes7/dynatrace-openkit-go/openkitgo/protocol"
 	"github.com/dlopes7/dynatrace-openkit-go/openkitgo/providers"
 	"github.com/dlopes7/dynatrace-openkit-go/openkitgo/utils"
 	log "github.com/sirupsen/logrus"
@@ -103,7 +104,7 @@ type Beacon struct {
 	clientIPAddress    string
 
 	immutableBasicBeaconData string
-	configuration            configuration.Beacon
+	configuration            *configuration.BeaconConfiguration
 	trafficControlValue      int
 	log                      *log.Logger
 	cache                    *caching.BeaconCache
@@ -114,8 +115,8 @@ func NewBeacon(
 	log *log.Logger,
 	beaconCache *caching.BeaconCache,
 	sessionIDProvider *providers.SessionIDProvider,
-	sessionProxy *core.SessionProxy,
-	beaconConfiguration configuration.Beacon,
+	sessionProxy *SessionProxy,
+	beaconConfiguration *configuration.BeaconConfiguration,
 	sessionStartTime time.Time,
 	deviceID int,
 	ipAddress string,
@@ -142,6 +143,54 @@ func NewBeacon(
 }
 func (b *Beacon) EndSession() {
 	b.EndSessionAt(time.Now())
+}
+
+func (b *Beacon) CreateID() uint32 {
+	return atomic.AddUint32(&b.nextID, 1)
+}
+func (b *Beacon) CreateSequenceNumber() uint32 {
+	return atomic.AddUint32(&b.nextSequenceNumber, 1)
+}
+
+func (b *Beacon) GetSessionStartTime() time.Time {
+	return b.sessionStartTime
+}
+
+func (b *Beacon) CreateTag(parentActionID int, tracerSeqNo int) string {
+
+	if !b.configuration.PrivacyConfiguration.IsWebRequestTracingAllowed() {
+		return ""
+	}
+
+	serverID := b.configuration.HttpClientConfiguration.ServerID
+	var builder strings.Builder
+
+	builder.WriteString(TAG_PREFIX)
+	builder.WriteString(fmt.Sprintf("_%d", protocol.PROTOCOL_VERSION))
+	builder.WriteString(fmt.Sprintf("_%d", serverID))
+	builder.WriteString(fmt.Sprintf("_%d", b.deviceID))
+	builder.WriteString(fmt.Sprintf("_%d", b.GetSessionNumber()))
+	if b.GetVisitStoreVersion() > 1 {
+		builder.WriteString(fmt.Sprintf("-%d", b.key.BeaconSeqNo))
+	}
+	builder.WriteString(fmt.Sprintf("_%s", b.configuration.OpenKitConfiguration.PercentEncodedApplicationID))
+	builder.WriteString(fmt.Sprintf("_%d", parentActionID))
+	builder.WriteString("_1")
+	builder.WriteString(fmt.Sprintf("_%d", tracerSeqNo))
+
+	return builder.String()
+}
+
+func (b *Beacon) GetSessionNumber() int {
+	if b.configuration.PrivacyConfiguration.IsSessionNumberReportingAllowed() {
+		return int(b.key.BeaconId)
+	}
+	return 1
+}
+
+func (b *Beacon) GetVisitStoreVersion() int {
+	return b.configuration.ServerConfiguration.VisitStoreVersion
+
 }
 
 func (b *Beacon) EndSessionAt(timestamp time.Time) {
@@ -257,6 +306,10 @@ func (b *Beacon) addKeyValuePairIfNotNegative(builder *strings.Builder, key stri
 
 func (b *Beacon) IsEmpty() bool {
 	return b.cache.IsEmpty(b.key)
+}
+
+func (b *Beacon) isServerConfigurationSet() bool {
+	return b.configuration.IsServerConfigurationSet()
 }
 
 func truncate(name string) string {

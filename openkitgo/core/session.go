@@ -10,25 +10,25 @@ const (
 )
 
 type Session struct {
-	log    *log.Logger
-	parent OpenKitComposite
-	// TODO beacon *Beacon
-	state             SessionState
+	log               *log.Logger
+	parent            OpenKitComposite
+	beacon            *Beacon
+	State             SessionState
 	remainingRequests int
 	splitEndTime      time.Time
 }
 
-func NewSession(log *log.Logger, parent OpenKitComposite /*TODO beacon *Beacon*/) *Session {
+func NewSession(log *log.Logger, parent OpenKitComposite, beacon *Beacon) *Session {
 
 	s := &Session{
-		log:    log,
-		parent: parent,
-		// TODO - beacon: beacon
+		log:               log,
+		parent:            parent,
+		beacon:            beacon,
 		remainingRequests: MAX_NEW_SESSION_REQUESTS,
 	}
-	s.state = NewSessionState(s)
+	s.State = NewSessionState(s)
 
-	// TODO - s.beacon.startSession()
+	// TODO - s.beacon.StartSession()
 	return s
 }
 
@@ -65,7 +65,7 @@ func (s *Session) endWithEvent(sendEvent bool, timestamp time.Time) {
 	s.log.WithFields(log.Fields{"session": s}).Debug("end()")
 
 	// End was already called before
-	if !s.state.markAsIsFinishing() {
+	if !s.State.MarkAsIsFinishing() {
 		return
 	}
 
@@ -74,10 +74,14 @@ func (s *Session) endWithEvent(sendEvent bool, timestamp time.Time) {
 	}
 
 	if sendEvent {
-		// TODO - s.beacon.endSession()
+		s.beacon.EndSession()
 	}
 
-	s.state.markAsFinished()
+	s.State.MarkAsFinished()
 	s.parent.OnChildClosed(s)
 	s.parent = nil
+}
+
+func (s *Session) ClearCapturedData() {
+	s.beacon.ClearData()
 }

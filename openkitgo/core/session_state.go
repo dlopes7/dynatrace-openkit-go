@@ -16,60 +16,60 @@ func NewSessionState(session *Session) SessionState {
 	}
 }
 
-func (s *SessionState) isConfigured() bool {
+func (s *SessionState) IsConfigured() bool {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
-	// TODO return session.beacon.isServerConfigurationSet();
-	return true
+	return s.session.beacon.isServerConfigurationSet()
+
 }
 
-func (s *SessionState) isConfiguredAndFinished() bool {
+func (s *SessionState) IsConfiguredAndFinished() bool {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
-	return s.isConfigured() && s.finished
+	return s.IsConfigured() && s.finished
 }
 
-func (s *SessionState) isConfiguredAndOpen() bool {
+func (s *SessionState) IsConfiguredAndOpen() bool {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
-	return s.isConfigured() && !s.finished
+	return s.IsConfigured() && !s.finished
 }
 
-func (s *SessionState) isFinishingOrFinished() bool {
+func (s *SessionState) IsFinishingOrFinished() bool {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 	return s.finishing || s.finished
 }
 
-func (s *SessionState) markAsIsFinishing() bool {
+func (s *SessionState) MarkAsIsFinishing() bool {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
-	if s.isFinishingOrFinished() {
+	if s.IsFinishingOrFinished() {
 		return false
 	}
 	s.finishing = true
 	return true
 }
 
-func (s *SessionState) markAsFinished() {
+func (s *SessionState) MarkAsFinished() {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 	s.finishing = true
 }
 
-func (s *SessionState) markAsWasTriedForEnding() {
+func (s *SessionState) MarkAsWasTriedForEnding() {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 	s.triedForEnding = true
 }
 
-func (s *SessionState) wasTriedForEnding() bool {
+func (s *SessionState) WasTriedForEnding() bool {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 	return s.triedForEnding
 }
 
-func (s *SessionState) isFinished() bool {
+func (s *SessionState) IsFinished() bool {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 	return s.finished
