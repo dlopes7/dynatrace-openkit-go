@@ -5,7 +5,7 @@ import (
 	"time"
 )
 
-type Server struct {
+type ServerConfiguration struct {
 	Capture                       bool
 	CrashReporting                bool
 	ErrorReporting                bool
@@ -23,8 +23,8 @@ type Server struct {
 	TrafficControlPercentage      int
 }
 
-func NewServerConfiguration(attributes protocol.ResponseAttributes) Server {
-	return Server{
+func NewServerConfiguration(attributes protocol.ResponseAttributes) ServerConfiguration {
+	return ServerConfiguration{
 		Capture:                       attributes.Capture,
 		CrashReporting:                attributes.CaptureCrashes,
 		ErrorReporting:                attributes.CaptureErrors,
@@ -43,6 +43,10 @@ func NewServerConfiguration(attributes protocol.ResponseAttributes) Server {
 	}
 }
 
-func DefaultServerConfiguration() Server {
+func DefaultServerConfiguration() ServerConfiguration {
 	return NewServerConfiguration(protocol.UndefinedResponseAttributes())
+}
+
+func (c *ServerConfiguration) IsSendingDataAllowed() bool {
+	return c.Capture && c.Multiplicity > 0
 }

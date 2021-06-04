@@ -17,7 +17,7 @@ const (
 type BeaconSendingContext struct {
 	log                     *log.Logger
 	mutex                   sync.Mutex
-	serverConfiguration     configuration.Server
+	serverConfiguration     configuration.ServerConfiguration
 	lastResponseAttributes  protocol.ResponseAttributes
 	httpClientConfiguration configuration.HttpClient
 	sessions                chan openkitgo.Session

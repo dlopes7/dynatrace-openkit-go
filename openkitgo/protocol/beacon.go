@@ -5,8 +5,11 @@ import (
 	"github.com/dlopes7/dynatrace-openkit-go/openkitgo/configuration"
 	"github.com/dlopes7/dynatrace-openkit-go/openkitgo/core"
 	"github.com/dlopes7/dynatrace-openkit-go/openkitgo/providers"
+	"github.com/dlopes7/dynatrace-openkit-go/openkitgo/utils"
 	log "github.com/sirupsen/logrus"
 	"math/rand"
+	"strings"
+	"sync/atomic"
 	"time"
 )
 
@@ -74,10 +77,27 @@ const (
 	BEACON_DATA_DELIMITER = '&'
 )
 
+type EventType int
+
+const (
+	ACTION        EventType = 1
+	VALUE_STRING  EventType = 11
+	VALUE_INT     EventType = 12
+	VALUE_DOUBLE  EventType = 13
+	NAMED_EVENT   EventType = 10
+	SESSION_START EventType = 18
+	SESSION_END   EventType = 19
+	WEB_REQUEST   EventType = 30
+	ERROR         EventType = 40
+	EXCEPTION     EventType = 42
+	CRASH         EventType = 50
+	IDENTIFY_USER EventType = 60
+)
+
 type Beacon struct {
 	nextID             uint32 // Atomic
 	nextSequenceNumber uint32 // Atomic
-	beaconKey          caching.BeaconKey
+	key                caching.BeaconKey
 	sessionStartTime   time.Time
 	deviceID           int
 	clientIPAddress    string
@@ -107,7 +127,7 @@ func NewBeacon(
 	return &Beacon{
 		nextID:                   0,
 		nextSequenceNumber:       0,
-		beaconKey:                caching.NewBeaconKey(sessionNumber, sessionSequenceNumber),
+		key:                      caching.NewBeaconKey(sessionNumber, sessionSequenceNumber),
 		sessionStartTime:         sessionStartTime,
 		deviceID:                 deviceID,
 		clientIPAddress:          ipAddress,
@@ -119,4 +139,130 @@ func NewBeacon(
 		sessionIDProvider:        sessionIDProvider,
 	}
 
+}
+func (b *Beacon) EndSession() {
+	b.EndSessionAt(time.Now())
+}
+
+func (b *Beacon) EndSessionAt(timestamp time.Time) {
+
+	// TODO check privacyConfiguration
+
+	if !b.isDataCapturingEnabled() {
+		return
+	}
+
+	var builder strings.Builder
+	b.buildBasicEventDataWithoutName(&builder, SESSION_END)
+	b.addKeyValuePair(&builder, BEACON_KEY_PARENT_ACTION_ID, 0)
+	b.addKeyValuePair(&builder, BEACON_KEY_START_SEQUENCE_NUMBER, atomic.AddUint32(&b.nextSequenceNumber, 1))
+
+	sessionDuration := timestamp.Sub(b.sessionStartTime).Milliseconds()
+	b.addKeyValuePair(&builder, BEACON_KEY_TIME_0, sessionDuration)
+
+	// TODO b.addEventData(timestamp, &builder);
+
+}
+
+func (b *Beacon) isDataCapturingEnabled() bool {
+	s := b.configuration.ServerConfiguration
+	return s.IsSendingDataAllowed() && b.trafficControlValue < s.TrafficControlPercentage
+
+}
+
+func (b *Beacon) buildBasicEventDataWithoutName(builder *strings.Builder, eventType EventType) {
+
+	b.addKeyValuePair(builder, BEACON_KEY_EVENT_TYPE, eventType)
+	b.addKeyValuePair(builder, BEACON_KEY_THREAD_ID, 1)
+
+}
+
+func (b *Beacon) addKeyValuePair(builder *strings.Builder, key string, value interface{}) {
+	b.appendKey(builder, key)
+	builder.WriteString(value.(string))
+}
+
+func (b *Beacon) appendKey(builder *strings.Builder, key string) {
+	if builder.Len() > 0 {
+		builder.WriteRune('&')
+	}
+	builder.WriteString(key)
+	builder.WriteRune('=')
+
+}
+
+func (b *Beacon) addEventData(timestamp time.Time, builder *strings.Builder) {
+
+	if b.isDataCapturingEnabled() {
+		b.cache.AddEventData(b.key, timestamp, builder.String())
+	}
+}
+
+func (b *Beacon) ClearData() {
+	b.cache.DeleteCacheEntry(b.key)
+}
+
+func (b *Beacon) buildEvent(builder *strings.Builder, eventType EventType, name string, parentActionID int, timestamp time.Time) {
+	b.buildBasicEventData(builder, eventType, name)
+
+	b.addKeyValuePair(builder, BEACON_KEY_PARENT_ACTION_ID, parentActionID)
+	b.addKeyValuePair(builder, BEACON_KEY_START_SEQUENCE_NUMBER, atomic.AddUint32(&b.nextSequenceNumber, 1))
+	b.addKeyValuePair(builder, BEACON_KEY_TIME_0, timestamp.Sub(b.sessionStartTime).Milliseconds())
+
+}
+
+func (b *Beacon) buildBasicEventData(builder *strings.Builder, eventType EventType, name string) {
+	b.buildBasicEventDataWithoutName(builder, eventType)
+	b.addKeyValuePair(builder, BEACON_KEY_NAME, truncate(name))
+}
+
+func (b *Beacon) createImmutableBasicBeaconData() {
+
+	// TODO implement
+
+}
+
+func (b *Beacon) createTimestampData() string {
+
+	var builder strings.Builder
+
+	b.addKeyValuePair(&builder, BEACON_KEY_TRANSMISSION_TIME, utils.TimeToMillis(time.Now()))
+	b.addKeyValuePair(&builder, BEACON_KEY_SESSION_START_TIME, utils.TimeToMillis(b.sessionStartTime))
+
+	return builder.String()
+}
+
+func (b *Beacon) createMultiplicityData() string {
+
+	var builder strings.Builder
+
+	b.addKeyValuePair(&builder, BEACON_KEY_MULTIPLICITY, b.configuration.ServerConfiguration.Multiplicity)
+
+	return builder.String()
+}
+
+func (b *Beacon) addKeyValuePairIfNotNull(builder *strings.Builder, key string, value interface{}) {
+
+	if value != nil {
+		b.addKeyValuePair(builder, key, value)
+	}
+}
+
+func (b *Beacon) addKeyValuePairIfNotNegative(builder *strings.Builder, key string, value interface{}) {
+
+	if value.(int64) > 0 {
+		b.addKeyValuePair(builder, key, value)
+	}
+}
+
+func (b *Beacon) IsEmpty() bool {
+	return b.cache.IsEmpty(b.key)
+}
+
+func truncate(name string) string {
+	name = strings.TrimSpace(name)
+	if len(name) > MAX_NAME_LEN {
+		name = name[:MAX_NAME_LEN]
+	}
+	return name
 }
