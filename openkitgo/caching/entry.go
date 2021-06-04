@@ -2,7 +2,6 @@ package caching
 
 import (
 	"sort"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -34,7 +33,7 @@ func (e *BeaconCacheEntry) needsDataCopyBeforeSending() bool {
 }
 
 func (e *BeaconCacheEntry) hasDataToSend() bool {
-	return len(e.eventDataBeingSent) > 0 && len(e.actionDataBeingSent) > 0
+	return len(e.eventDataBeingSent) > 0 || len(e.actionDataBeingSent) > 0
 }
 
 func (e *BeaconCacheEntry) copyDataForSending() {
@@ -56,7 +55,6 @@ func (e *BeaconCacheEntry) getChunk(chunkPrefix string, maxSize int, delimiter r
 func (e *BeaconCacheEntry) getNextChunk(chunkPrefix string, maxSize int, delimiter rune) string {
 
 	var b strings.Builder
-	b.WriteString(strconv.Itoa(maxSize))
 	b.WriteString(chunkPrefix)
 
 	e.chunkifyDataList(&b, e.eventDataBeingSent, maxSize, delimiter)
@@ -145,9 +143,9 @@ func (e *BeaconCacheEntry) removeRecordsOlderThan(timestamp time.Time) int {
 	e.eventDataBeingSent = keepEvents
 
 	var keepActions []*BeaconCacheRecord
-	for _, eventRecord := range e.actionDataBeingSent {
-		if eventRecord.timestamp.After(timestamp) {
-			keepActions = append(keepActions, eventRecord)
+	for _, actionRecord := range e.actionDataBeingSent {
+		if actionRecord.timestamp.After(timestamp) {
+			keepActions = append(keepActions, actionRecord)
 		} else {
 			numRecordsRemoved += 1
 		}

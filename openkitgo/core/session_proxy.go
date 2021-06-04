@@ -19,6 +19,10 @@ type SessionProxy struct {
 	// TODO clientIpAddress
 }
 
+func NewSessionProxy() *SessionProxy {
+	return &SessionProxy{}
+}
+
 func (p *SessionProxy) GetSessionSequenceNumber() uint32 {
 	return p.sessionSequenceNumber
 }

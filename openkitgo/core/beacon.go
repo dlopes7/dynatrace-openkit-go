@@ -181,6 +181,45 @@ func (b *Beacon) CreateTag(parentActionID int, tracerSeqNo int) string {
 	return builder.String()
 }
 
+func (b *Beacon) AddAction(action *Action) {
+	b.AddActionAt(action, time.Now())
+}
+
+func (b *Beacon) AddActionAt(action *Action, timestamp time.Time) {
+	if action == nil || action.name == "" {
+		b.log.Error("Attempted to start an action without a name.")
+		return
+	}
+
+	if !b.configuration.PrivacyConfiguration.IsActionReportingAllowed() {
+		return
+	}
+
+	if !b.isDataCapturingEnabled() {
+		return
+	}
+
+	var builder strings.Builder
+
+	b.buildBasicEventData(&builder, ACTION, action.name)
+
+	b.addKeyValuePair(&builder, BEACON_KEY_ACTION_ID, action.id)
+	b.addKeyValuePair(&builder, BEACON_KEY_PARENT_ACTION_ID, action.parentActionID)
+	b.addKeyValuePair(&builder, BEACON_KEY_START_SEQUENCE_NUMBER, action.startSequenceNo)
+	b.addKeyValuePair(&builder, BEACON_KEY_TIME_0, timestamp.Sub(b.sessionStartTime).Milliseconds())
+	b.addKeyValuePair(&builder, BEACON_KEY_END_SEQUENCE_NUMBER, action.endSequenceNo)
+	b.addKeyValuePair(&builder, BEACON_KEY_TIME_1, action.endTime.Sub(action.startTime).Milliseconds())
+
+	b.addActionData(timestamp, &builder)
+
+}
+
+func (b *Beacon) addActionData(timestamp time.Time, builder *strings.Builder) {
+	if b.isDataCapturingEnabled() {
+		b.cache.AddActionData(b.key, timestamp, builder.String())
+	}
+}
+
 func (b *Beacon) GetSessionNumber() int {
 	if b.configuration.PrivacyConfiguration.IsSessionNumberReportingAllowed() {
 		return int(b.key.BeaconId)
@@ -228,7 +267,7 @@ func (b *Beacon) buildBasicEventDataWithoutName(builder *strings.Builder, eventT
 
 func (b *Beacon) addKeyValuePair(builder *strings.Builder, key string, value interface{}) {
 	b.appendKey(builder, key)
-	builder.WriteString(value.(string))
+	builder.WriteString(fmt.Sprintf("%v", value))
 }
 
 func (b *Beacon) appendKey(builder *strings.Builder, key string) {

@@ -39,7 +39,9 @@ func (s *Session) RemoveChildFromList(child OpenKitObject) bool {
 func (s *Session) GetCopyOfChildObjects() []OpenKitObject {
 	return []OpenKitObject{}
 }
-func (s *Session) GetChildCount()                    {}
+func (s *Session) GetChildCount() int {
+	return 1
+}
 func (s *Session) OnChildClosed(child OpenKitObject) {}
 func (s *Session) GetActionID() int {
 	return 0

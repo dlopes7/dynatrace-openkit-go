@@ -10,8 +10,8 @@ type SessionIDProvider struct {
 	mutex         sync.Mutex
 }
 
-func NewSessionIDProvider() SessionIDProvider {
-	return SessionIDProvider{initialOffset: rand.Uint32()}
+func NewSessionIDProvider() *SessionIDProvider {
+	return &SessionIDProvider{initialOffset: rand.Uint32()}
 }
 
 func (p *SessionIDProvider) GetNextSessionID() uint32 {

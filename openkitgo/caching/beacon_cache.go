@@ -16,12 +16,13 @@ type BeaconCache struct {
 
 func NewBeaconCache(log *log.Logger) *BeaconCache {
 	return &BeaconCache{
-		log: log,
+		log:     log,
+		beacons: map[BeaconKey]*BeaconCacheEntry{},
 	}
 }
 
 func (c *BeaconCache) AddEventData(key BeaconKey, timestamp time.Time, data string) {
-	c.log.WithFields(log.Fields{"key": key, "data": data, "time": timestamp}).Debug("BeaconCache.AddEventData()")
+	c.log.WithFields(log.Fields{"key": key.String(), "data": data, "time": timestamp}).Debug("BeaconCache.AddEventData()")
 
 	entry := c.getCachedEntryOrInsert(key)
 	record := NewBeaconCacheRecord(timestamp, data)
@@ -36,7 +37,7 @@ func (c *BeaconCache) AddEventData(key BeaconKey, timestamp time.Time, data stri
 }
 
 func (c *BeaconCache) AddActionData(key BeaconKey, timestamp time.Time, data string) {
-	c.log.WithFields(log.Fields{"key": key, "data": data, "time": timestamp}).Debug("BeaconCache.AddEventData()")
+	c.log.WithFields(log.Fields{"key": key.String(), "data": data, "time": timestamp}).Debug("BeaconCache.AddActionData()")
 
 	entry := c.getCachedEntryOrInsert(key)
 	record := NewBeaconCacheRecord(timestamp, data)
@@ -55,11 +56,11 @@ func (c *BeaconCache) getCachedEntryOrInsert(key BeaconKey) *BeaconCacheEntry {
 
 	entry := c.getCachedEntry(key)
 
-	if entry != nil {
+	if entry == nil {
 		c.mutex.Lock()
 		defer c.mutex.Unlock()
 
-		entry := &BeaconCacheEntry{}
+		entry = &BeaconCacheEntry{}
 		c.beacons[key] = entry
 	} else {
 		entry = c.beacons[key]
@@ -80,7 +81,7 @@ func (c *BeaconCache) onDataAdded() {
 }
 
 func (c *BeaconCache) DeleteCacheEntry(key BeaconKey) {
-	c.log.WithFields(log.Fields{"key": key}).Debug("BeaconCache.DeleteCacheEntry()")
+	c.log.WithFields(log.Fields{"key": key.String()}).Debug("BeaconCache.DeleteCacheEntry()")
 
 	var entry *BeaconCacheEntry
 
@@ -181,7 +182,7 @@ func (c *BeaconCache) evictRecordsByAge(key BeaconKey, timestamp time.Time) int 
 	numRecordsRemoved = entry.removeRecordsOlderThan(timestamp)
 	entry.mutex.Unlock()
 
-	log.WithFields(log.Fields{"key": key, "timestamp": timestamp, "evicted": numRecordsRemoved}).Debug("BeaconCache.evictRecordsByAge()")
+	log.WithFields(log.Fields{"key": key.String(), "timestamp": timestamp, "evicted": numRecordsRemoved}).Debug("BeaconCache.evictRecordsByAge()")
 
 	return numRecordsRemoved
 }

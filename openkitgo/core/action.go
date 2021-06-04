@@ -42,29 +42,29 @@ type Action struct {
 	parent          OpenKitComposite
 	parentActionID  int
 	mutex           sync.Mutex
-	id              int
+	id              uint32
 	name            string
 	startTime       time.Time
 	endTime         time.Time
 	startSequenceNo int
 	endSequenceNo   int
 	actionLeft      bool
-	// TODO beacon *Beacon
+	beacon          *Beacon
 }
 
-func NewAction(log *log.Logger, parent OpenKitComposite, name string /* TODO beacon Beacon */, startTime time.Time) Action {
+func NewAction(log *log.Logger, parent OpenKitComposite, name string, beacon *Beacon, startTime time.Time) *Action {
 
-	return Action{
+	return &Action{
 		log:             log,
 		parent:          parent,
 		parentActionID:  parent.GetActionID(),
-		id:              0, // TODO beacon.CreateID(),
+		id:              beacon.CreateID(),
 		name:            name,
 		startTime:       startTime,
-		startSequenceNo: 0, // TODO beacon.CreateSequenceNumber()
+		startSequenceNo: int(beacon.CreateSequenceNumber()),
 		endSequenceNo:   -1,
 		actionLeft:      false,
-		// TODO beacon: beacon
+		beacon:          beacon,
 	}
 
 }

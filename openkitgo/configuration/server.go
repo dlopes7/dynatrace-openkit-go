@@ -23,8 +23,8 @@ type ServerConfiguration struct {
 	TrafficControlPercentage      int
 }
 
-func NewServerConfiguration(attributes protocol.ResponseAttributes) ServerConfiguration {
-	return ServerConfiguration{
+func NewServerConfiguration(attributes protocol.ResponseAttributes) *ServerConfiguration {
+	return &ServerConfiguration{
 		Capture:                       attributes.Capture,
 		CrashReporting:                attributes.CaptureCrashes,
 		ErrorReporting:                attributes.CaptureErrors,
@@ -43,7 +43,7 @@ func NewServerConfiguration(attributes protocol.ResponseAttributes) ServerConfig
 	}
 }
 
-func DefaultServerConfiguration() ServerConfiguration {
+func DefaultServerConfiguration() *ServerConfiguration {
 	return NewServerConfiguration(protocol.UndefinedResponseAttributes())
 }
 
