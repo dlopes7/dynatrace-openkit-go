@@ -49,8 +49,9 @@ func (c *BeaconSendingContext) executeCurrentState() {
 
 	if c.nextState != nil && c.nextState != c.currentState {
 		c.log.WithFields(log.Fields{"currentState": c.currentState, "nextState": c.nextState}).Debug("changing state")
+		c.currentState = c.nextState
 	}
-	c.currentState = c.nextState
+
 }
 
 func (c *BeaconSendingContext) getCurrentTimestamp() time.Time {
