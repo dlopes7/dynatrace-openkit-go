@@ -260,6 +260,12 @@ func (b *Beacon) isDataCapturingEnabled() bool {
 
 }
 
+func (b *Beacon) isErrorCapturingEnabled() bool {
+	s := b.configuration.GetServerConfiguration()
+	return s.IsSendingErrorsAllowed() && b.trafficControlValue < s.TrafficControlPercentage
+
+}
+
 func (b *Beacon) buildBasicEventDataWithoutName(builder *strings.Builder, eventType EventType) {
 
 	b.addKeyValuePair(builder, BEACON_KEY_EVENT_TYPE, eventType)
@@ -315,8 +321,7 @@ func (b *Beacon) createImmutableBasicBeaconData() string {
 	b.addKeyValuePair(&builder, BEACON_KEY_PROTOCOL_VERSION, protocol.PROTOCOL_VERSION)
 	b.addKeyValuePair(&builder, BEACON_KEY_OPENKIT_VERSION, protocol.OPENKIT_VERSION)
 	b.addKeyValuePair(&builder, BEACON_KEY_APPLICATION_ID, config.ApplicationID)
-	b.addKeyValuePair(&builder, BEACON_KEY_APPLICATION_NAME, config.ApplicationName)
-	b.addKeyValuePair(&builder, BEACON_KEY_APPLICATION_VERSION, config.ApplicationVersion)
+	b.addKeyValuePairIfNotNull(&builder, BEACON_KEY_APPLICATION_NAME, config.ApplicationName)
 	b.addKeyValuePair(&builder, BEACON_KEY_APPLICATION_VERSION, config.ApplicationVersion)
 	b.addKeyValuePair(&builder, BEACON_KEY_PLATFORM_TYPE, protocol.PLATFORM_TYPE_OPENKIT)
 	b.addKeyValuePair(&builder, BEACON_KEY_AGENT_TECHNOLOGY_TYPE, protocol.AGENT_TECHNOLOGY_TYPE)
@@ -395,7 +400,7 @@ func (b *Beacon) isServerConfigurationSet() bool {
 }
 
 func (b *Beacon) disableCapture() {
-	b.configuration.ServerConfiguration.Capture = false
+	b.configuration.DisableCapture()
 }
 
 func (b *Beacon) updateServerConfiguration(config *configuration.ServerConfiguration) {
@@ -464,6 +469,71 @@ func (b *Beacon) startSession() {
 
 	b.addEventData(b.sessionStartTime, &builder)
 
+}
+
+func (b *Beacon) reportEvent(parentActionID int, eventName string, timestamp time.Time) {
+	if !b.isDataCapturingEnabled() {
+		return
+	}
+
+	var builder strings.Builder
+	b.buildEvent(&builder, NAMED_EVENT, eventName, parentActionID, timestamp)
+	b.addEventData(timestamp, &builder)
+}
+func (b *Beacon) reportValue(parentActionID int, valueName string, value interface{}, timestamp time.Time) {
+	if !b.isDataCapturingEnabled() {
+		return
+	}
+
+	valueType := VALUE_STRING
+	switch value.(type) {
+	case string:
+		valueType = VALUE_STRING
+	case int, int64, int32, uint32, uint64:
+		valueType = VALUE_INT
+	case float64, float32:
+		valueType = VALUE_DOUBLE
+	}
+
+	var builder strings.Builder
+	b.buildEvent(&builder, valueType, valueName, parentActionID, timestamp)
+	b.addKeyValuePair(&builder, BEACON_KEY_VALUE, value)
+	b.addEventData(timestamp, &builder)
+
+}
+
+func (b *Beacon) reportError(parentActionID int, errorName string, causeName string, causeDescription string, causeStackTrace string, timestamp time.Time) {
+	if !b.isDataCapturingEnabled() {
+		return
+	}
+
+	var builder strings.Builder
+
+	b.buildBasicEventData(&builder, EXCEPTION, errorName)
+
+	b.addKeyValuePair(&builder, BEACON_KEY_PARENT_ACTION_ID, parentActionID)
+	b.addKeyValuePair(&builder, BEACON_KEY_START_SEQUENCE_NUMBER, b.CreateSequenceNumber())
+	b.addKeyValuePair(&builder, BEACON_KEY_TIME_0, timestamp.Sub(b.sessionStartTime).Milliseconds())
+	b.addKeyValuePairIfNotNull(&builder, BEACON_KEY_ERROR_VALUE, causeName)
+	b.addKeyValuePairIfNotNull(&builder, BEACON_KEY_ERROR_REASON, causeDescription)
+	b.addKeyValuePairIfNotNull(&builder, BEACON_KEY_ERROR_STACKTRACE, causeStackTrace)
+	b.addKeyValuePair(&builder, BEACON_KEY_ERROR_TECHNOLOGY_TYPE, protocol.ERROR_TECHNOLOGY_TYPE)
+
+	b.addEventData(timestamp, &builder)
+}
+func (b *Beacon) addWebRequest(parentActionID int, errorName string, causeName string, causeDescription string, causeStackTrace string, timestamp time.Time) {
+	panic("implement me")
+}
+
+func (b *Beacon) identifyUser(parentActionID int, errorName string, causeName string, causeDescription string, causeStackTrace string, timestamp time.Time) {
+	panic("implement me")
+}
+
+func (b *Beacon) initializeServerConfiguration(c *configuration.ServerConfiguration) {
+	b.configuration.InitializeServerConfiguration(c)
+}
+func (b *Beacon) enableCapture() {
+	b.configuration.EnableCapture()
 }
 
 func truncate(name string) string {

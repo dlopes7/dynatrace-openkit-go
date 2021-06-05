@@ -10,6 +10,7 @@ import (
 type Action struct {
 	log             *log.Logger
 	parent          OpenKitComposite
+	parentAction    openkitgo.Action
 	parentActionID  int
 	mutex           sync.Mutex
 	id              int32
@@ -17,24 +18,57 @@ type Action struct {
 	startTime       time.Time
 	endTime         time.Time
 	startSequenceNo int
-	endSequenceNo   int
+	endSequenceNo   int32
 	actionLeft      bool
 	beacon          *Beacon
+	children        []OpenKitObject
 }
 
-func (a *Action) closeAt(timestamp time.Time) {
-	panic("implement me")
+func (a *Action) storeChildInList(child OpenKitObject) {
+	a.mutex.Lock()
+	defer a.mutex.Unlock()
+	a.children = append(a.children, child)
 }
 
-func (a *Action) close() {
-	panic("implement me")
+func (a *Action) removeChildFromList(child OpenKitObject) bool {
+	a.mutex.Lock()
+	defer a.mutex.Unlock()
+	removed := false
+
+	var keep []OpenKitObject
+	for _, c := range a.children {
+		if c != child {
+			keep = append(keep, c)
+		} else {
+			removed = true
+		}
+	}
+	a.children = keep
+	return removed
 }
 
-func NewAction(log *log.Logger, parent OpenKitComposite, name string, beacon *Beacon, startTime time.Time) *Action {
+func (a *Action) getCopyOfChildObjects() []OpenKitObject {
+	return a.children[:]
+}
+
+func (a *Action) getChildCount() int {
+	return len(a.children)
+}
+
+func (a *Action) onChildClosed(child OpenKitObject) {
+	a.removeChildFromList(child)
+}
+
+func (a *Action) getActionID() int {
+	return int(a.id)
+}
+
+func NewAction(log *log.Logger, parent OpenKitComposite, parentAction openkitgo.Action, name string, beacon *Beacon, startTime time.Time) *Action {
 
 	return &Action{
 		log:             log,
 		parent:          parent,
+		parentAction:    parentAction,
 		parentActionID:  parent.getActionID(),
 		id:              beacon.CreateID(),
 		name:            name,
@@ -47,70 +81,113 @@ func NewAction(log *log.Logger, parent OpenKitComposite, name string, beacon *Be
 
 }
 
+func (a *Action) closeAt(timestamp time.Time) {
+	a.LeaveActionAt(timestamp)
+}
+
+func (a *Action) close() {
+	a.closeAt(time.Now())
+}
+
 func (a *Action) ReportEvent(eventName string) openkitgo.Action {
-	panic("implement me")
+	return a.ReportEventAt(eventName, time.Now())
 }
 
 func (a *Action) ReportEventAt(eventName string, timestamp time.Time) openkitgo.Action {
-	panic("implement me")
+	if eventName == "" {
+		a.log.Warning("eventName must not be empty")
+		return a
+	}
+
+	a.log.WithFields(log.Fields{"actionName": a.name, "eventName": eventName, "timestamp": timestamp}).Debug("ReportEvent()")
+
+	if !a.actionLeft {
+		a.beacon.reportEvent(int(a.id), eventName, timestamp)
+	}
+
+	return a
 }
 
-func (a *Action) ReportInt64Value(valueName string, value int64) openkitgo.Action {
-	panic("implement me")
+func (a *Action) ReportValue(valueName string, value interface{}) openkitgo.Action {
+	return a.ReportValueAt(valueName, value, time.Now())
 }
 
-func (a *Action) ReportInt64ValueAt(valueName string, value int64, timestamp time.Time) openkitgo.Action {
-	panic("implement me")
+func (a *Action) ReportValueAt(valueName string, value interface{}, timestamp time.Time) openkitgo.Action {
+	a.log.WithFields(log.Fields{"actionName": a.name, "valueName": valueName, "value": value, "timestamp": timestamp}).Debug("ReportValue()")
+	if !a.actionLeft {
+		a.beacon.reportValue(int(a.id), valueName, value, timestamp)
+	}
+	return a
 }
 
-func (a *Action) ReportStringValue(valueName string, value string) openkitgo.Action {
-	panic("implement me")
+func (a *Action) ReportError(errorName string, causeName string, causeDescription string, causeStack string) openkitgo.Action {
+	return a.ReportErrorAt(errorName, causeName, causeDescription, causeStack, time.Now())
 }
 
-func (a *Action) ReportStringValueAt(valueName string, value string, timestamp time.Time) openkitgo.Action {
-	panic("implement me")
-}
-
-func (a *Action) ReportFloat64Value(valueName string, value float64) openkitgo.Action {
-	panic("implement me")
-}
-
-func (a *Action) ReportFloat64ValueAt(valueName string, value float64, timestamp time.Time) openkitgo.Action {
-	panic("implement me")
-}
-
-func (a *Action) ReportError(errorName string, errorCode int) openkitgo.Action {
-	panic("implement me")
-}
-
-func (a *Action) ReportErrorAt(errorName string, errorCode int, timestamp time.Time) openkitgo.Action {
-	panic("implement me")
-}
-
-func (a *Action) ReportException(errorName string, causeName string, causeDescription string, causeStack string) openkitgo.Action {
-	panic("implement me")
-}
-
-func (a *Action) ReportExceptionAt(errorName string, causeName string, causeDescription string, causeStack string, timestamp time.Time) openkitgo.Action {
-	panic("implement me")
+func (a *Action) ReportErrorAt(errorName string, causeName string, causeDescription string, causeStack string, timestamp time.Time) openkitgo.Action {
+	a.log.WithFields(log.Fields{"actionName": a.name, "errorName": errorName, "causeName": causeName, "timestamp": timestamp}).Debug("ReportError()")
+	if !a.actionLeft {
+		a.beacon.reportError(int(a.id), errorName, causeName, causeDescription, causeStack, timestamp)
+	}
+	return a
 }
 
 func (a *Action) LeaveAction() openkitgo.Action {
-	panic("implement me")
+	return a.LeaveActionAt(time.Now())
 }
 
 func (a *Action) LeaveActionAt(timestamp time.Time) openkitgo.Action {
-	panic("implement me")
+	a.log.WithFields(log.Fields{"actionName": a.name, "timestamp": timestamp}).Debug("Action.LeaveAction()")
+
+	return a.doLeaveAction(false, timestamp)
 }
 
 func (a *Action) CancelAction() openkitgo.Action {
-	panic("implement me")
+	return a.CancelActionAt(time.Now())
 }
 
 func (a *Action) CancelActionAt(timestamp time.Time) openkitgo.Action {
-	panic("implement me")
+	a.log.WithFields(log.Fields{"actionName": a.name}).Debug("CancelAction()")
+
+	return a.doLeaveAction(true, timestamp)
+
+}
+
+func (a *Action) doLeaveAction(discardData bool, timestamp time.Time) openkitgo.Action {
+	a.mutex.Lock()
+	defer a.mutex.Unlock()
+	if a.actionLeft {
+		return a.parentAction
+	}
+	a.actionLeft = true
+
+	for _, child := range a.getCopyOfChildObjects() {
+		if discardData {
+			child.(*Action).CancelActionAt(timestamp)
+		} else {
+			child.closeAt(timestamp)
+		}
+	}
+
+	a.endTime = timestamp
+	a.endSequenceNo = a.beacon.CreateSequenceNumber()
+
+	if !discardData {
+		a.beacon.AddAction(a)
+	}
+
+	a.parent.onChildClosed(a)
+	a.parent = nil
+
+	return a.parentAction
 }
 
 func (a *Action) GetDuration() time.Duration {
-	panic("implement me")
+	a.mutex.Lock()
+	defer a.mutex.Unlock()
+
+	if a.actionLeft {
+		return a.endTime.Sub(a.startTime)
+	}
+	return time.Now().Sub(a.startTime)
 }

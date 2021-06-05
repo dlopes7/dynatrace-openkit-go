@@ -73,3 +73,32 @@ func (c *BeaconConfiguration) UpdateServerConfiguration(config *ServerConfigurat
 	c.notifyServerConfigurationUpdate(config)
 
 }
+
+func (c *BeaconConfiguration) InitializeServerConfiguration(config *ServerConfiguration) {
+
+	if config == nil {
+		return
+	}
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
+
+	c.ServerConfiguration = config
+	c.serverConfigurationSet = true
+
+	c.notifyServerConfigurationUpdate(config)
+
+}
+
+func (c *BeaconConfiguration) EnableCapture() {
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
+	c.ServerConfiguration.Capture = true
+
+}
+
+func (c *BeaconConfiguration) DisableCapture() {
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
+	c.ServerConfiguration.Capture = false
+
+}

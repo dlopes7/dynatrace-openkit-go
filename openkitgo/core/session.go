@@ -33,7 +33,7 @@ func (s *Session) EnterActionAt(actionName string, timestamp time.Time) openkitg
 	s.log.WithFields(log.Fields{"actionName": actionName, "timestamp": timestamp}).Debug("Session.EnterActionAt()")
 
 	if !s.State.IsFinishingOrFinished() {
-		action := NewAction(s.log, s, actionName, s.beacon, timestamp)
+		action := NewAction(s.log, s, nil, actionName, s.beacon, timestamp)
 		s.storeChildInList(action)
 		return action
 	}

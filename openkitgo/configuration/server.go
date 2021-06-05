@@ -50,3 +50,8 @@ func DefaultServerConfiguration() *ServerConfiguration {
 func (c *ServerConfiguration) IsSendingDataAllowed() bool {
 	return c.Capture && c.Multiplicity > 0
 }
+
+func (c *ServerConfiguration) IsSendingErrorsAllowed() bool {
+	return c.IsSendingDataAllowed() && c.ErrorReporting
+
+}
