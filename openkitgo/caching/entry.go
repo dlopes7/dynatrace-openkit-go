@@ -1,6 +1,7 @@
 package caching
 
 import (
+	"fmt"
 	"sort"
 	"strings"
 	"sync"
@@ -24,6 +25,7 @@ func (e *BeaconCacheEntry) addEventData(record *BeaconCacheRecord) {
 }
 
 func (e *BeaconCacheEntry) addActionData(record *BeaconCacheRecord) {
+	fmt.Println("ADDING THE ACTION TO THIS BITCH")
 	e.actionData = append(e.actionData, record)
 	e.totalNumBytes += record.getDataSizeInBytes()
 }

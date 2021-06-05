@@ -50,7 +50,7 @@ func (s *SessionState) MarkAsIsFinishing() bool {
 func (s *SessionState) MarkAsFinished() {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
-	s.finishing = true
+	s.finished = true
 }
 
 func (s *SessionState) MarkAsWasTriedForEnding() {

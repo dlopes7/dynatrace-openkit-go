@@ -41,6 +41,43 @@ type SessionProxy struct {
 	mutex    sync.Mutex
 }
 
+func NewSessionProxy(
+	log *log.Logger,
+	parent OpenKitComposite,
+	beaconSender *BeaconSender,
+	// TODO sessionWatchdog
+	input *OpenKit,
+	clientIPAddress string,
+	timestamp time.Time,
+) *SessionProxy {
+	p := &SessionProxy{
+		// Proxy
+		log:          log,
+		parent:       parent,
+		beaconSender: beaconSender,
+
+		// Creator
+		openKitConfiguration: input.openKitConfiguration,
+		privacyConfiguration: input.privacyConfiguration,
+		beaconCache:          input.beaconCache,
+		clientIPAddress:      clientIPAddress,
+		serverID:             beaconSender.GetCurrentServerId(),
+
+		currentSession:      nil,
+		topLevelActionCount: 0,
+		lastInteractionTime: time.Time{},
+		isFinished:          false,
+		lastUserTag:         "",
+
+		children: []OpenKitObject{},
+	}
+
+	currentServerConfig := beaconSender.GetLastServerConfiguration()
+	p.createInitialSessionAndMakeCurrent(currentServerConfig, timestamp)
+
+	return p
+}
+
 func (p *SessionProxy) storeChildInList(child OpenKitObject) {
 	p.mutex.Lock()
 	defer p.mutex.Unlock()
@@ -87,41 +124,6 @@ func (p *SessionProxy) getActionID() int {
 	return DEFAULT_ACTION_ID
 }
 
-func NewSessionProxy(
-	log *log.Logger,
-	parent OpenKitComposite,
-	beaconSender *BeaconSender,
-	// TODO sessionWatchdog
-	input *OpenKit,
-	clientIPAddress string,
-	timestamp time.Time,
-) *SessionProxy {
-	p := &SessionProxy{
-		// Proxy
-		log:          log,
-		parent:       parent,
-		beaconSender: beaconSender,
-
-		// Creator
-		openKitConfiguration: input.openKitConfiguration,
-		privacyConfiguration: input.privacyConfiguration,
-		beaconCache:          input.beaconCache,
-		clientIPAddress:      clientIPAddress,
-		serverID:             beaconSender.GetCurrentServerId(),
-
-		currentSession:      nil,
-		topLevelActionCount: 0,
-		lastInteractionTime: time.Time{},
-		isFinished:          false,
-		lastUserTag:         "",
-	}
-
-	currentServerConfig := beaconSender.GetLastServerConfiguration()
-	p.createInitialSessionAndMakeCurrent(currentServerConfig, timestamp)
-
-	return p
-}
-
 func (p *SessionProxy) EnterAction(actionName string) openkitgo.Action {
 	return p.EnterActionAt(actionName, time.Now())
 }
@@ -137,14 +139,7 @@ func (p *SessionProxy) EnterActionAt(actionName string, timestamp time.Time) ope
 	defer p.mutex.Unlock()
 	if !p.isFinished {
 		session := p.getOrSplitCurrentSessionByEvents(timestamp)
-		/* TODO
-		if (session.getBeacon().isActionReportingAllowedByPrivacySettings()) {
-		                    // avoid session splitting by action count, if user opted out of action collection
-		                    recordTopActionEvent();
-		                } else {
-		                    recordTopLevelEventInteraction();
-		                }
-		*/
+		p.topLevelActionCount++
 		return session.EnterActionAt(actionName, timestamp)
 	}
 
