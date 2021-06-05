@@ -72,9 +72,9 @@ func (a NullAction) CancelAction() openkitgo.Action {
 }
 
 func (a NullAction) CancelActionAt(timestamp time.Time) openkitgo.Action {
-	panic("implement me")
+	return a
 }
 
 func (a NullAction) GetDuration() time.Duration {
-	panic("implement me")
+	return 0
 }

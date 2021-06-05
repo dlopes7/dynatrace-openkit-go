@@ -123,7 +123,6 @@ func NewSessionProxy(
 }
 
 func (p *SessionProxy) EnterAction(actionName string) openkitgo.Action {
-
 	return p.EnterActionAt(actionName, time.Now())
 }
 
@@ -280,7 +279,7 @@ func (p *SessionProxy) closeChildObjects(timestamp time.Time) {
 
 func (p *SessionProxy) isSessionSplitByEventsRequired() bool {
 
-	if !p.serverConfiguration.IsSendingDataAllowed() {
+	if p.serverConfiguration == nil || !p.serverConfiguration.IsSendingDataAllowed() {
 		return false
 	}
 	return p.serverConfiguration.MaxEventsPerSession <= p.topLevelActionCount

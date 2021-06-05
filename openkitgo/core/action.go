@@ -22,6 +22,14 @@ type Action struct {
 	beacon          *Beacon
 }
 
+func (a *Action) closeAt(timestamp time.Time) {
+	panic("implement me")
+}
+
+func (a *Action) close() {
+	panic("implement me")
+}
+
 func NewAction(log *log.Logger, parent OpenKitComposite, name string, beacon *Beacon, startTime time.Time) *Action {
 
 	return &Action{

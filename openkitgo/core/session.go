@@ -26,11 +26,18 @@ type Session struct {
 }
 
 func (s *Session) EnterAction(actionName string) openkitgo.Action {
-	panic("implement me")
+	return s.EnterActionAt(actionName, time.Now())
 }
 
 func (s *Session) EnterActionAt(actionName string, timestamp time.Time) openkitgo.Action {
-	panic("implement me")
+	s.log.WithFields(log.Fields{"actionName": actionName, "timestamp": timestamp}).Debug("Session.EnterActionAt()")
+
+	if !s.State.IsFinishingOrFinished() {
+		action := NewAction(s.log, s, actionName, s.beacon, timestamp)
+		s.storeChildInList(action)
+		return action
+	}
+	return NewNullAction()
 }
 
 func (s *Session) IdentifyUser(userTag string) {
