@@ -28,4 +28,7 @@ type OpenKit interface {
 	WaitForInitCompletion() bool
 	WaitForInitCompletionTimeout(duration time.Duration) bool
 	Shutdown()
+
+	CreateSession(clientIPAddress string) Session
+	CreateSessionAt(clientIPAddress string, timestamp time.Time) Session
 }

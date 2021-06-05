@@ -32,7 +32,6 @@ func NewStateInit() *StateInit {
 
 func (s *StateInit) execute(ctx *BeaconSendingContext) {
 
-	ctx.initWg.Add(1)
 	statusResponse := s.executeStatusRequest(ctx)
 
 	if ctx.IsShutdownRequested() {
@@ -47,7 +46,6 @@ func (s *StateInit) execute(ctx *BeaconSendingContext) {
 		} else {
 			ctx.nextState = NewStateCaptureOff(0)
 		}
-
 		ctx.initWg.Done()
 		ctx.initOk = true
 	}

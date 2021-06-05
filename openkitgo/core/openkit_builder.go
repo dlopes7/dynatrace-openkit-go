@@ -146,6 +146,9 @@ func (b *OpenKitBuilder) Build() openkitgo.OpenKit {
 	openKit := NewOpenKit(b).(*OpenKit)
 	openKit.initialize()
 
+	log.WithFields(log.Fields{"instance": openKit.String()}).Info("OpenKit instantiated")
+	log.WithFields(log.Fields{"instance": openKit.DetailedString()}).Debug("OpenKit instantiated")
+
 	return openKit
 
 }

@@ -8,7 +8,7 @@ type BeaconConfiguration struct {
 	HttpClientConfiguration    *HttpClientConfiguration
 	PrivacyConfiguration       *PrivacyConfiguration
 	serverConfigurationSet     bool
-	serverConfigUpdateCallback func(configuration ServerConfiguration)
+	serverConfigUpdateCallback func(configuration *ServerConfiguration)
 
 	mutex sync.Mutex
 }
@@ -34,4 +34,16 @@ func (c *BeaconConfiguration) IsServerConfigurationSet() bool {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
 	return c.serverConfigurationSet
+}
+
+func (c *BeaconConfiguration) SetServerConfigurationUpdateCallback(callback func(configuration *ServerConfiguration)) {
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
+	c.serverConfigUpdateCallback = callback
+}
+
+func (c *BeaconConfiguration) notifyServerConfigurationUpdate(configuration *ServerConfiguration) {
+	if c.serverConfigUpdateCallback != nil {
+		c.serverConfigUpdateCallback(configuration)
+	}
 }

@@ -22,7 +22,7 @@ type BeaconSendingContext struct {
 	sessions                []*Session
 
 	shutdown int32 // atomic
-	initWg   sync.WaitGroup
+	initWg   *sync.WaitGroup
 
 	currentState BeaconState
 	nextState    BeaconState
@@ -34,15 +34,16 @@ type BeaconSendingContext struct {
 
 func NewBeaconSendingContext(log *log.Logger,
 	httpClientConfiguration *configuration.HttpClientConfiguration) *BeaconSendingContext {
-
-	return &BeaconSendingContext{
+	b := &BeaconSendingContext{
 		log:                     log,
 		serverConfiguration:     configuration.DefaultServerConfiguration(),
 		lastResponseAttributes:  protocol.UndefinedResponseAttributes(),
 		httpClientConfiguration: httpClientConfiguration,
-		initWg:                  sync.WaitGroup{},
+		initWg:                  &sync.WaitGroup{},
 		currentState:            NewStateInit(),
 	}
+	b.initWg.Add(1)
+	return b
 
 }
 
@@ -122,7 +123,7 @@ func (c *BeaconSendingContext) requestShutDown() {
 }
 
 func (c *BeaconSendingContext) WaitForInitTimeout(timeout time.Duration) bool {
-	if waitTimeout(&c.initWg, timeout) {
+	if waitTimeout(c.initWg, timeout) {
 		c.log.WithFields(log.Fields{"timeout": timeout}).Error("timed out waiting for init")
 		return c.initOk
 	}

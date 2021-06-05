@@ -100,7 +100,7 @@ type Beacon struct {
 	nextSequenceNumber uint32 // Atomic
 	key                caching.BeaconKey
 	sessionStartTime   time.Time
-	deviceID           int
+	deviceID           int64
 	clientIPAddress    string
 
 	immutableBasicBeaconData string
@@ -118,11 +118,11 @@ func NewBeacon(
 	sessionProxy *SessionProxy,
 	beaconConfiguration *configuration.BeaconConfiguration,
 	sessionStartTime time.Time,
-	deviceID int,
+	deviceID int64,
 	ipAddress string,
 
 ) *Beacon {
-	sessionNumber := sessionIDProvider.GetNextSessionID()
+	sessionNumber := sessionIDProvider.GetNextSessionID() // TODO fix nil
 	sessionSequenceNumber := sessionProxy.GetSessionSequenceNumber()
 
 	return &Beacon{
@@ -400,6 +400,10 @@ func (b *Beacon) appendMutableBeaconData(immutableBasicBeaconData string) string
 	builder.WriteRune(BEACON_DATA_DELIMITER)
 	builder.WriteString(b.createMultiplicityData())
 	return builder.String()
+}
+
+func (b *Beacon) setServerConfigurationUpdateCallback(callback ServerConfigurationUpdateCallback) {
+	b.configuration.SetServerConfigurationUpdateCallback(callback.onServerConfigurationUpdate)
 }
 
 func truncate(name string) string {

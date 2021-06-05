@@ -26,6 +26,35 @@ type OpenKit struct {
 	children []OpenKitObject
 }
 
+func (o *OpenKit) CreateSession(clientIPAddress string) openkitgo.Session {
+	return o.CreateSessionAt(clientIPAddress, time.Now())
+}
+
+func (o *OpenKit) CreateSessionAt(clientIPAddress string, timestamp time.Time) openkitgo.Session {
+	o.log.WithFields(log.Fields{"clientIPAddress": clientIPAddress, "timestamp": timestamp}).Debug("OpenKit.CreateSessionAt()")
+
+	o.mutex.Lock()
+	if !o.isShutDown {
+
+		sessionProxy := NewSessionProxy(
+			o.log,
+			o,
+			o.beaconSender,
+			o,
+			clientIPAddress,
+			// TODO o.sessionWatchdog
+			timestamp,
+		)
+
+		o.storeChildInList(sessionProxy)
+		return sessionProxy
+
+	}
+
+	return NewNullSession()
+
+}
+
 func NewOpenKit(builder *OpenKitBuilder) openkitgo.OpenKit {
 
 	privacyConfig := &configuration.PrivacyConfiguration{
@@ -75,9 +104,6 @@ func NewOpenKit(builder *OpenKitBuilder) openkitgo.OpenKit {
 		beaconSender:         beaconSender,
 		// TODO sessionWatchdog
 	}
-
-	log.WithFields(log.Fields{"instance": ok.String()}).Info("OpenKit instantiated")
-	log.WithFields(log.Fields{"instance": ok.DetailedString()}).Debug("OpenKit instantiated")
 
 	return ok
 }
