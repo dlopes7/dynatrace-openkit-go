@@ -125,20 +125,22 @@ func NewBeacon(
 	sessionNumber := sessionIDProvider.GetNextSessionID() // TODO fix nil
 	sessionSequenceNumber := sessionProxy.GetSessionSequenceNumber()
 
-	return &Beacon{
-		nextID:                   0,
-		nextSequenceNumber:       0,
-		key:                      caching.NewBeaconKey(sessionNumber, sessionSequenceNumber),
-		sessionStartTime:         sessionStartTime,
-		deviceID:                 deviceID,
-		clientIPAddress:          ipAddress,
-		immutableBasicBeaconData: "",
-		configuration:            beaconConfiguration,
-		trafficControlValue:      rand.Intn(100),
-		log:                      log,
-		cache:                    beaconCache,
-		sessionIDProvider:        sessionIDProvider,
+	b := &Beacon{
+		nextID:              0,
+		nextSequenceNumber:  0,
+		key:                 caching.NewBeaconKey(sessionNumber, sessionSequenceNumber),
+		sessionStartTime:    sessionStartTime,
+		deviceID:            deviceID,
+		clientIPAddress:     ipAddress,
+		configuration:       beaconConfiguration,
+		trafficControlValue: rand.Intn(100),
+		log:                 log,
+		cache:               beaconCache,
+		sessionIDProvider:   sessionIDProvider,
 	}
+	b.immutableBasicBeaconData = b.createImmutableBasicBeaconData()
+
+	return b
 
 }
 func (b *Beacon) EndSession() {
@@ -248,12 +250,12 @@ func (b *Beacon) EndSessionAt(timestamp time.Time) {
 	sessionDuration := timestamp.Sub(b.sessionStartTime).Milliseconds()
 	b.addKeyValuePair(&builder, BEACON_KEY_TIME_0, sessionDuration)
 
-	// TODO b.addEventData(timestamp, &builder);
+	b.addEventData(timestamp, &builder)
 
 }
 
 func (b *Beacon) isDataCapturingEnabled() bool {
-	s := b.configuration.ServerConfiguration
+	s := b.configuration.GetServerConfiguration()
 	return s.IsSendingDataAllowed() && b.trafficControlValue < s.TrafficControlPercentage
 
 }
@@ -304,10 +306,35 @@ func (b *Beacon) buildBasicEventData(builder *strings.Builder, eventType EventTy
 	b.addKeyValuePair(builder, BEACON_KEY_NAME, truncate(name))
 }
 
-func (b *Beacon) createImmutableBasicBeaconData() {
+func (b *Beacon) createImmutableBasicBeaconData() string {
 
-	// TODO implement
+	config := b.configuration.OpenKitConfiguration
 
+	var builder strings.Builder
+
+	b.addKeyValuePair(&builder, BEACON_KEY_PROTOCOL_VERSION, protocol.PROTOCOL_VERSION)
+	b.addKeyValuePair(&builder, BEACON_KEY_OPENKIT_VERSION, protocol.OPENKIT_VERSION)
+	b.addKeyValuePair(&builder, BEACON_KEY_APPLICATION_ID, config.ApplicationID)
+	b.addKeyValuePair(&builder, BEACON_KEY_APPLICATION_NAME, config.ApplicationName)
+	b.addKeyValuePair(&builder, BEACON_KEY_APPLICATION_VERSION, config.ApplicationVersion)
+	b.addKeyValuePair(&builder, BEACON_KEY_APPLICATION_VERSION, config.ApplicationVersion)
+	b.addKeyValuePair(&builder, BEACON_KEY_PLATFORM_TYPE, protocol.PLATFORM_TYPE_OPENKIT)
+	b.addKeyValuePair(&builder, BEACON_KEY_AGENT_TECHNOLOGY_TYPE, protocol.AGENT_TECHNOLOGY_TYPE)
+
+	b.addKeyValuePair(&builder, BEACON_KEY_VISITOR_ID, b.deviceID)
+	b.addKeyValuePair(&builder, BEACON_KEY_SESSION_NUMBER, b.GetSessionNumber())
+	b.addKeyValuePair(&builder, BEACON_KEY_CLIENT_IP_ADDRESS, b.clientIPAddress)
+
+	b.addKeyValuePairIfNotNull(&builder, BEACON_KEY_DEVICE_OS, config.OperatingSystem)
+	b.addKeyValuePairIfNotNull(&builder, BEACON_KEY_DEVICE_MANUFACTURER, config.Manufacturer)
+	b.addKeyValuePairIfNotNull(&builder, BEACON_KEY_DEVICE_MODEL, config.ModelID)
+
+	privacyConfig := b.configuration.PrivacyConfiguration
+
+	b.addKeyValuePair(&builder, BEACON_KEY_DATA_COLLECTION_LEVEL, privacyConfig.DataCollectionLevel)
+	b.addKeyValuePair(&builder, BEACON_KEY_CRASH_REPORTING_LEVEL, privacyConfig.CrashReportingLevel)
+
+	return builder.String()
 }
 
 func (b *Beacon) createTimestampData() string {
@@ -331,7 +358,23 @@ func (b *Beacon) createMultiplicityData() string {
 
 func (b *Beacon) addKeyValuePairIfNotNull(builder *strings.Builder, key string, value interface{}) {
 
-	if value != nil {
+	send := true
+	switch value.(type) {
+	case string:
+		if value == "" {
+			send = false
+		}
+	case int:
+		if value == 0 {
+			send = false
+		}
+	case int64:
+		if value == 0 {
+			send = false
+		}
+	}
+
+	if send {
 		b.addKeyValuePair(builder, key, value)
 	}
 }
@@ -356,7 +399,7 @@ func (b *Beacon) disableCapture() {
 }
 
 func (b *Beacon) updateServerConfiguration(config *configuration.ServerConfiguration) {
-	b.configuration.ServerConfiguration = config
+	b.configuration.UpdateServerConfiguration(config)
 }
 
 func (b *Beacon) send(ctx *BeaconSendingContext) protocol.StatusResponse {
@@ -404,6 +447,23 @@ func (b *Beacon) appendMutableBeaconData(immutableBasicBeaconData string) string
 
 func (b *Beacon) setServerConfigurationUpdateCallback(callback ServerConfigurationUpdateCallback) {
 	b.configuration.SetServerConfigurationUpdateCallback(callback.onServerConfigurationUpdate)
+}
+
+func (b *Beacon) startSession() {
+	if !b.isDataCapturingEnabled() {
+		return
+	}
+
+	var builder strings.Builder
+
+	b.buildBasicEventDataWithoutName(&builder, SESSION_START)
+
+	b.addKeyValuePair(&builder, BEACON_KEY_PARENT_ACTION_ID, 0)
+	b.addKeyValuePair(&builder, BEACON_KEY_START_SEQUENCE_NUMBER, b.CreateSequenceNumber())
+	b.addKeyValuePair(&builder, BEACON_KEY_TIME_0, 0)
+
+	b.addEventData(b.sessionStartTime, &builder)
+
 }
 
 func truncate(name string) string {

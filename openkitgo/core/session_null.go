@@ -44,17 +44,11 @@ func (n NullSession) EnterActionAt(actionName string, timestamp time.Time) openk
 	return NewNullAction()
 }
 
-func (n NullSession) IdentifyUser(userTag string) {}
-
-func (n NullSession) IdentifyUserAt(userTag string, timestamp time.Time) {}
-
+func (n NullSession) IdentifyUser(userTag string)                                    {}
+func (n NullSession) IdentifyUserAt(userTag string, timestamp time.Time)             {}
 func (n NullSession) ReportCrash(errorName string, reason string, stacktrace string) {}
-
 func (n NullSession) ReportCrashAt(errorName string, reason string, stacktrace string, timestamp time.Time) {
 }
-
-func (n NullSession) End() {}
-
-func (n NullSession) String() string {
-	panic("NullSession")
-}
+func (n NullSession) End()                      {}
+func (n NullSession) EndAt(timestamp time.Time) {}
+func (n NullSession) String() string            { return "NullSession" }

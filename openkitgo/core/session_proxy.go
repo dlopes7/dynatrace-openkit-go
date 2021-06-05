@@ -5,6 +5,7 @@ import (
 	"github.com/dlopes7/dynatrace-openkit-go/openkitgo"
 	"github.com/dlopes7/dynatrace-openkit-go/openkitgo/caching"
 	"github.com/dlopes7/dynatrace-openkit-go/openkitgo/configuration"
+	"github.com/dlopes7/dynatrace-openkit-go/openkitgo/providers"
 	log "github.com/sirupsen/logrus"
 	"sync"
 	"time"
@@ -34,14 +35,10 @@ type SessionProxy struct {
 	beaconCache           *caching.BeaconCache
 	clientIPAddress       string
 	serverID              int
-	sessionSequenceNumber uint32
+	sessionSequenceNumber int32
 
 	children []OpenKitObject
 	mutex    sync.Mutex
-}
-
-func (p *SessionProxy) End() {
-	p.EndAt(time.Now())
 }
 
 func (p *SessionProxy) storeChildInList(child OpenKitObject) {
@@ -76,8 +73,6 @@ func (p *SessionProxy) getChildCount() int {
 }
 
 func (p *SessionProxy) onChildClosed(child OpenKitObject) {
-	p.mutex.Lock()
-	defer p.mutex.Unlock()
 	p.removeChildFromList(child)
 	/*
 		TODO
@@ -140,6 +135,7 @@ func (p *SessionProxy) EnterActionAt(actionName string, timestamp time.Time) ope
 	p.log.WithFields(log.Fields{"actionName": actionName}).Debug("SessionProxy.EnterAction()")
 
 	p.mutex.Lock()
+	defer p.mutex.Unlock()
 	if !p.isFinished {
 		session := p.getOrSplitCurrentSessionByEvents(timestamp)
 		/* TODO
@@ -171,12 +167,16 @@ func (p *SessionProxy) ReportCrash(errorName string, reason string, stacktrace s
 func (p *SessionProxy) ReportCrashAt(errorName string, reason string, stacktrace string, timestamp time.Time) {
 	panic("implement me")
 }
+func (p *SessionProxy) End() {
+	p.EndAt(time.Now())
+}
 
 func (p *SessionProxy) EndAt(timestamp time.Time) {
 	p.log.Debug("SessionProxy.End()")
 
 	p.mutex.Lock()
 	if p.isFinished {
+		p.mutex.Unlock()
 		return
 	}
 	p.isFinished = true
@@ -200,7 +200,7 @@ func (p *SessionProxy) close() {
 	p.closeAt(time.Now())
 }
 
-func (p *SessionProxy) GetSessionSequenceNumber() uint32 {
+func (p *SessionProxy) GetSessionSequenceNumber() int32 {
 	return p.sessionSequenceNumber
 }
 
@@ -252,7 +252,7 @@ func (p *SessionProxy) createSessionAt(parent OpenKitComposite, timestamp time.T
 	beacon := NewBeacon(
 		p.log,
 		p.beaconCache,
-		nil, // TODO implement
+		providers.NewSessionIDProvider(),
 		p,
 		config,
 		timestamp,
@@ -260,7 +260,7 @@ func (p *SessionProxy) createSessionAt(parent OpenKitComposite, timestamp time.T
 		p.clientIPAddress,
 	)
 
-	session := NewSession(p.log, parent, beacon)
+	session := NewSession(p.log, parent, beacon, timestamp)
 	p.sessionSequenceNumber++
 
 	return session
@@ -303,5 +303,14 @@ func (p *SessionProxy) createSplitSessionAndMakeCurrent(serverConfiguration *con
 }
 
 func (p *SessionProxy) onServerConfigurationUpdate(serverConfiguration *configuration.ServerConfiguration) {
+	p.serverConfiguration = serverConfiguration
+
+	if p.isFinished {
+		return
+	}
+
+	if p.serverConfiguration.SessionSplitByIdleTimeout || p.serverConfiguration.SessionSplitBySessionDuration {
+		// TODO sessionWatchdog.addToSplitByTimeout(this);
+	}
 
 }

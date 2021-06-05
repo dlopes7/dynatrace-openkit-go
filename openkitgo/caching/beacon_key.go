@@ -3,11 +3,11 @@ package caching
 import "fmt"
 
 type BeaconKey struct {
-	BeaconId    uint32
-	BeaconSeqNo uint32
+	BeaconId    int32
+	BeaconSeqNo int32
 }
 
-func NewBeaconKey(beaconId uint32, beaconSeqNo uint32) BeaconKey {
+func NewBeaconKey(beaconId int32, beaconSeqNo int32) BeaconKey {
 	return BeaconKey{
 		BeaconId:    beaconId,
 		BeaconSeqNo: beaconSeqNo,

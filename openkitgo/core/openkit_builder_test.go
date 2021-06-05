@@ -11,6 +11,6 @@ func TestBuild(t *testing.T) {
 	b := NewOpenKitBuilder("https://localhost", "", 1)
 	b.Build()
 
-	assert.Equal(t, configuration.DATA_USER_BEHAVIOR, b.dataCollectionLevel)
+	assert.Equal(t, configuration.DATA_USER_BEHAVIOR, b.(*OpenKitBuilder).dataCollectionLevel)
 
 }

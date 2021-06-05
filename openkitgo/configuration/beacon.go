@@ -47,3 +47,29 @@ func (c *BeaconConfiguration) notifyServerConfigurationUpdate(configuration *Ser
 		c.serverConfigUpdateCallback(configuration)
 	}
 }
+
+func (c *BeaconConfiguration) GetServerConfiguration() *ServerConfiguration {
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
+	if c.ServerConfiguration == nil {
+		return DefaultServerConfiguration()
+
+	} else {
+		return c.ServerConfiguration
+	}
+}
+
+func (c *BeaconConfiguration) UpdateServerConfiguration(config *ServerConfiguration) {
+
+	if config == nil {
+		return
+	}
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
+
+	c.ServerConfiguration = config
+	c.serverConfigurationSet = true
+
+	c.notifyServerConfigurationUpdate(config)
+
+}

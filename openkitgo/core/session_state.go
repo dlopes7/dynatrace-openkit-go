@@ -17,8 +17,6 @@ func NewSessionState(session *Session) SessionState {
 }
 
 func (s *SessionState) IsConfigured() bool {
-	s.mutex.Lock()
-	defer s.mutex.Unlock()
 	return s.session.beacon.isServerConfigurationSet()
 
 }
@@ -36,8 +34,6 @@ func (s *SessionState) IsConfiguredAndOpen() bool {
 }
 
 func (s *SessionState) IsFinishingOrFinished() bool {
-	s.mutex.Lock()
-	defer s.mutex.Unlock()
 	return s.finishing || s.finished
 }
 

@@ -53,7 +53,7 @@ func (s *Session) String() string {
 	return fmt.Sprintf("Session(%d)", s.beacon.GetSessionNumber())
 }
 
-func NewSession(log *log.Logger, parent OpenKitComposite, beacon *Beacon) *Session {
+func NewSession(log *log.Logger, parent OpenKitComposite, beacon *Beacon, timestamp time.Time) *Session {
 
 	s := &Session{
 		log:               log,
@@ -63,7 +63,7 @@ func NewSession(log *log.Logger, parent OpenKitComposite, beacon *Beacon) *Sessi
 	}
 	s.State = NewSessionState(s)
 
-	// TODO - s.beacon.StartSession()
+	beacon.startSession()
 	return s
 }
 
@@ -72,10 +72,6 @@ func (s *Session) getCopyOfChildObjects() []OpenKitObject {
 }
 
 func (s *Session) onChildClosed(child OpenKitObject) {
-	s.mutex.Lock()
-	defer s.mutex.Unlock()
-
-	s.State.mutex.Lock()
 	s.removeChildFromList(child)
 
 	if s.State.WasTriedForEnding() && s.getChildCount() == 0 {
@@ -133,7 +129,7 @@ func (s *Session) EndAt(timestamp time.Time) {
 }
 
 func (s *Session) endWithEvent(sendEvent bool, timestamp time.Time) {
-	s.log.WithFields(log.Fields{"session": s}).Debug("end()")
+	s.log.WithFields(log.Fields{"session": s, "sendEvent": sendEvent, "timestamp": timestamp}).Debug("Session.end()")
 
 	// End was already called before
 	if !s.State.MarkAsIsFinishing() {

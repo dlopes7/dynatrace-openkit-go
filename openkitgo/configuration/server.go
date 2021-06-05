@@ -44,7 +44,7 @@ func NewServerConfiguration(attributes protocol.ResponseAttributes) *ServerConfi
 }
 
 func DefaultServerConfiguration() *ServerConfiguration {
-	return NewServerConfiguration(protocol.UndefinedResponseAttributes())
+	return NewServerConfiguration(protocol.DefaultResponseAttributes())
 }
 
 func (c *ServerConfiguration) IsSendingDataAllowed() bool {

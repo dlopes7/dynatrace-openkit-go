@@ -34,6 +34,7 @@ func (o *OpenKit) CreateSessionAt(clientIPAddress string, timestamp time.Time) o
 	o.log.WithFields(log.Fields{"clientIPAddress": clientIPAddress, "timestamp": timestamp}).Debug("OpenKit.CreateSessionAt()")
 
 	o.mutex.Lock()
+	defer o.mutex.Unlock()
 	if !o.isShutDown {
 
 		sessionProxy := NewSessionProxy(
@@ -48,7 +49,6 @@ func (o *OpenKit) CreateSessionAt(clientIPAddress string, timestamp time.Time) o
 
 		o.storeChildInList(sessionProxy)
 		return sessionProxy
-
 	}
 
 	return NewNullSession()
@@ -170,21 +170,15 @@ func (o *OpenKit) getCopyOfChildObjects() []OpenKitObject {
 }
 
 func (o *OpenKit) onChildClosed(child OpenKitObject) {
-	o.mutex.Lock()
-	defer o.mutex.Unlock()
 	o.removeChildFromList(child)
 }
 
 func (o *OpenKit) storeChildInList(child OpenKitObject) {
-	o.mutex.Lock()
-	defer o.mutex.Unlock()
 	o.children = append(o.children, child)
 
 }
 
 func (o *OpenKit) removeChildFromList(child OpenKitObject) bool {
-	o.mutex.Lock()
-	defer o.mutex.Unlock()
 	removed := false
 
 	var keep []OpenKitObject

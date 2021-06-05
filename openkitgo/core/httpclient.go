@@ -46,6 +46,8 @@ type HttpClient struct {
 	parser        protocol.ResponseParser
 
 	transport *http.Transport
+
+	requestTypes []string
 	// TODO private final HttpRequestInterceptor httpRequestInterceptor;
 	// TODO private final HttpResponseInterceptor httpResponseInterceptor;
 
@@ -59,6 +61,7 @@ func NewHttpClient(log *log.Logger, config *configuration.HttpClientConfiguratio
 		log:           log,
 		parser:        protocol.NewResponseParser(log),
 		transport:     config.Transport,
+		requestTypes:  []string{"Status", "Beacon", "NewSession"},
 	}
 }
 
@@ -135,13 +138,14 @@ func (h *HttpClient) sendBeaconRequest(clientIPAddress string, data []byte, ctx 
 }
 
 func (h *HttpClient) sendRequest(requestType RequestType, url string, clientIPAddress string, data []byte, method string) (*protocol.StatusResponse, error) {
-	h.log.WithFields(log.Fields{"type": requestType, "url": url, "method": method}).Debug("sendRequest")
+	h.log.WithFields(log.Fields{"type": h.requestTypes[requestType], "url": url, "method": method}).Debug("sendRequest")
 
 	client := http.Client{Transport: h.transport}
 
 	var buf bytes.Buffer
 
 	if data != nil {
+		h.log.WithFields(log.Fields{"data": string(data)}).Debug("Body")
 		g := gzip.NewWriter(&buf)
 
 		if _, err := g.Write(data); err != nil {
@@ -169,7 +173,6 @@ func (h *HttpClient) sendRequest(requestType RequestType, url string, clientIPAd
 		h.log.Error(err.Error())
 		return nil, err
 	}
-	h.log.WithFields(log.Fields{"response": resp.Status, "url": url}).Debug("received http response")
 	defer resp.Body.Close()
 
 	var bodyString string
@@ -178,6 +181,7 @@ func (h *HttpClient) sendRequest(requestType RequestType, url string, clientIPAd
 		bodyString = string(bodyBytes)
 	}
 
+	h.log.WithFields(log.Fields{"response": bodyString, "code": resp.Status}).Debug("HttpClient handle response")
 	responseAttributes := h.parser.ParseResponse(bodyString)
 	statusResponse := protocol.NewStatusResponse(h.log, responseAttributes, resp.StatusCode, resp.Header)
 

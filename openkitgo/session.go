@@ -16,6 +16,7 @@ type Session interface {
 	// TODO TraceWebRequestAt()
 
 	End()
+	EndAt(timestamp time.Time)
 
 	String() string
 }

@@ -147,7 +147,7 @@ func (p *ResponseParser) parseJson(response string) ResponseAttributes {
 		// Agent config
 		agentConfig := jsonResponse.MobileAgentConfig
 		if agentConfig.MaxBeaconSizeKb != 0 {
-			r.MaxBeaconSizeInBytes = agentConfig.MaxBeaconSizeKb
+			r.MaxBeaconSizeInBytes = agentConfig.MaxBeaconSizeKb * 1024
 		}
 		if agentConfig.MaxSessionDurationMins != 0 {
 			r.MaxSessionDuration = time.Duration(agentConfig.MaxSessionDurationMins) * time.Minute
