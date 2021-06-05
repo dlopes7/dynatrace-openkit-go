@@ -351,6 +351,14 @@ func (b *Beacon) isServerConfigurationSet() bool {
 	return b.configuration.IsServerConfigurationSet()
 }
 
+func (b *Beacon) disableCapture() {
+	b.configuration.ServerConfiguration.Capture = false
+}
+
+func (b *Beacon) updateServerConfiguration(config *configuration.ServerConfiguration) {
+	b.configuration.ServerConfiguration = config
+}
+
 func truncate(name string) string {
 	name = strings.TrimSpace(name)
 	if len(name) > MAX_NAME_LEN {

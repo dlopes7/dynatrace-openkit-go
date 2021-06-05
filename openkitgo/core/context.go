@@ -9,6 +9,10 @@ import (
 	"time"
 )
 
+const (
+	DEFAULT_SLEEP_TIME_MILLISECONDS = 1 * time.Second
+)
+
 type BeaconSendingContext struct {
 	log                     *log.Logger
 	mutex                   sync.Mutex
@@ -176,7 +180,7 @@ func (c *BeaconSendingContext) clearAllSessionData() {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
 	for _, session := range c.sessions {
-		session.ClearCapturedData()
+		session.clearCapturedData()
 		if !session.State.IsFinished() {
 			keepSessions = append(keepSessions, session)
 		}

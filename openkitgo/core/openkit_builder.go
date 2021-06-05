@@ -2,6 +2,7 @@ package core
 
 import (
 	"crypto/tls"
+	"github.com/dlopes7/dynatrace-openkit-go/openkitgo"
 	"github.com/dlopes7/dynatrace-openkit-go/openkitgo/configuration"
 	log "github.com/sirupsen/logrus"
 	"net/http"
@@ -49,7 +50,7 @@ func (b *OpenKitBuilder) ApplicationName() string {
 	return b.applicationName
 }
 
-func NewOpenKitBuilder(endpointURL string, applicationID string, deviceID int64) *OpenKitBuilder {
+func NewOpenKitBuilder(endpointURL string, applicationID string, deviceID int64) openkitgo.OpenKitBuilder {
 
 	return &OpenKitBuilder{
 		endpointURL:                    endpointURL,
@@ -71,27 +72,28 @@ func NewOpenKitBuilder(endpointURL string, applicationID string, deviceID int64)
 
 }
 
-func (b *OpenKitBuilder) WithApplicationName(applicationName string) *OpenKitBuilder {
+func (b *OpenKitBuilder) WithApplicationName(applicationName string) openkitgo.OpenKitBuilder {
 	b.applicationName = applicationName
 	return b
 }
 
-func (b *OpenKitBuilder) WithLogLevel(level log.Level) *OpenKitBuilder {
+func (b *OpenKitBuilder) WithLogLevel(level log.Level) openkitgo.OpenKitBuilder {
 	b.logLevel = level
+	b.log.SetLevel(level)
 	return b
 }
 
-func (b *OpenKitBuilder) WithLogger(log *log.Logger) *OpenKitBuilder {
+func (b *OpenKitBuilder) WithLogger(log *log.Logger) openkitgo.OpenKitBuilder {
 	b.log = log
 	return b
 }
 
-func (b *OpenKitBuilder) WithApplicationVersion(version string) *OpenKitBuilder {
+func (b *OpenKitBuilder) WithApplicationVersion(version string) openkitgo.OpenKitBuilder {
 	b.applicationVersion = version
 	return b
 }
 
-func (b *OpenKitBuilder) WithTransport(transport *http.Transport) *OpenKitBuilder {
+func (b *OpenKitBuilder) WithTransport(transport *http.Transport) openkitgo.OpenKitBuilder {
 	if transport == nil {
 		transport = &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: true}}
 	}
@@ -99,49 +101,49 @@ func (b *OpenKitBuilder) WithTransport(transport *http.Transport) *OpenKitBuilde
 	return b
 }
 
-func (b *OpenKitBuilder) WithOperatingSystem(operatingSystem string) *OpenKitBuilder {
+func (b *OpenKitBuilder) WithOperatingSystem(operatingSystem string) openkitgo.OpenKitBuilder {
 	b.operatingSystem = operatingSystem
 	return b
 }
 
-func (b *OpenKitBuilder) WithManufacturer(manufacturer string) *OpenKitBuilder {
+func (b *OpenKitBuilder) WithManufacturer(manufacturer string) openkitgo.OpenKitBuilder {
 	b.manufacturer = manufacturer
 	return b
 }
 
-func (b *OpenKitBuilder) WithModelID(modelID string) *OpenKitBuilder {
+func (b *OpenKitBuilder) WithModelID(modelID string) openkitgo.OpenKitBuilder {
 	b.modelID = modelID
 	return b
 }
 
-func (b *OpenKitBuilder) WithBeaconCacheMaxRecordAge(maxRecordAge time.Duration) *OpenKitBuilder {
+func (b *OpenKitBuilder) WithBeaconCacheMaxRecordAge(maxRecordAge time.Duration) openkitgo.OpenKitBuilder {
 	b.beaconCacheMaxRecordAge = maxRecordAge
 	return b
 }
 
-func (b *OpenKitBuilder) WithBeaconCacheLowerMemoryBoundary(m int64) *OpenKitBuilder {
+func (b *OpenKitBuilder) WithBeaconCacheLowerMemoryBoundary(m int64) openkitgo.OpenKitBuilder {
 	b.beaconCacheLowerMemoryBoundary = m
 	return b
 }
 
-func (b *OpenKitBuilder) WithBeaconCacheUpperMemoryBoundary(m int64) *OpenKitBuilder {
+func (b *OpenKitBuilder) WithBeaconCacheUpperMemoryBoundary(m int64) openkitgo.OpenKitBuilder {
 	b.beaconCacheUpperMemoryBoundary = m
 	return b
 }
 
-func (b *OpenKitBuilder) WithDataCollectionLevel(l configuration.DataCollectionLevel) *OpenKitBuilder {
+func (b *OpenKitBuilder) WithDataCollectionLevel(l configuration.DataCollectionLevel) openkitgo.OpenKitBuilder {
 	b.dataCollectionLevel = l
 	return b
 }
 
-func (b *OpenKitBuilder) WithCrashReportingLevel(l configuration.CrashReportingLevel) *OpenKitBuilder {
+func (b *OpenKitBuilder) WithCrashReportingLevel(l configuration.CrashReportingLevel) openkitgo.OpenKitBuilder {
 	b.crashReportLevel = l
 	return b
 }
 
-func (b *OpenKitBuilder) Build() *OpenKit {
+func (b *OpenKitBuilder) Build() openkitgo.OpenKit {
 
-	openKit := NewOpenKit(b)
+	openKit := NewOpenKit(b).(*OpenKit)
 	openKit.initialize()
 
 	return openKit

@@ -43,9 +43,9 @@ func (s *StateInit) execute(ctx *BeaconSendingContext) {
 		ctx.handleStatusResponse(statusResponse)
 
 		if ctx.isCaptureOn() {
-			// ctx.nextState = NewStateCaptureOn()
+			ctx.nextState = NewStateCaptureOn()
 		} else {
-			// ctx.nextState = NewStateCaptureOff()
+			ctx.nextState = NewStateCaptureOff()
 		}
 
 		ctx.initWg.Done()

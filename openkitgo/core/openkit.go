@@ -2,6 +2,7 @@ package core
 
 import (
 	"fmt"
+	"github.com/dlopes7/dynatrace-openkit-go/openkitgo"
 	"github.com/dlopes7/dynatrace-openkit-go/openkitgo/caching"
 	"github.com/dlopes7/dynatrace-openkit-go/openkitgo/configuration"
 	"github.com/dlopes7/dynatrace-openkit-go/openkitgo/utils"
@@ -25,7 +26,7 @@ type OpenKit struct {
 	children []OpenKitObject
 }
 
-func NewOpenKit(builder *OpenKitBuilder) *OpenKit {
+func NewOpenKit(builder *OpenKitBuilder) openkitgo.OpenKit {
 
 	privacyConfig := &configuration.PrivacyConfiguration{
 		DataCollectionLevel: builder.dataCollectionLevel,

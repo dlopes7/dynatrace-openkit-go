@@ -1,61 +1,39 @@
 package core
 
 import (
+	"github.com/dlopes7/dynatrace-openkit-go/openkitgo/configuration"
 	"github.com/dlopes7/dynatrace-openkit-go/openkitgo/protocol"
+	"net/http"
+	"time"
 )
 
 type StateCaptureOn struct{}
 
-//func (s *StateCaptureOn) execute(ctx *BeaconSendingContext) {
-//	time.Sleep(DEFAULT_SLEEP_TIME_MILLISECONDS)
-//
-//	newSessionsResponse := s.sendNewSessionRequests(ctx)
-//
-//	/*
-//	   if (BeaconSendingResponseUtil.isTooManyRequestsResponse(newSessionsResponse)) {
-//	       // server is currently overloaded, temporarily switch to capture off
-//	       context.setNextState(new BeaconSendingCaptureOffState(newSessionsResponse.getRetryAfterInMilliseconds()));
-//	       return;
-//	   }
-//
-//	   // send all finished sessions
-//	   StatusResponse finishedSessionsResponse = sendFinishedSessions(context);
-//	   if (BeaconSendingResponseUtil.isTooManyRequestsResponse(finishedSessionsResponse)) {
-//	       // server is currently overloaded, temporarily switch to capture off
-//	       context.setNextState(new BeaconSendingCaptureOffState(finishedSessionsResponse.getRetryAfterInMilliseconds()));
-//	       return;
-//	   }
-//
-//	   // check if we need to send open sessions & do it if necessary
-//	   StatusResponse openSessionsResponse = sendOpenSessions(context);
-//	   if (BeaconSendingResponseUtil.isTooManyRequestsResponse(openSessionsResponse)) {
-//	       // server is currently overloaded, temporarily switch to capture off
-//	       context.setNextState(new BeaconSendingCaptureOffState(openSessionsResponse.getRetryAfterInMilliseconds()));
-//	       return;
-//	   }
-//
-//	   // collect the last status response
-//	   StatusResponse lastStatusResponse = newSessionsResponse;
-//	   if (openSessionsResponse != null) {
-//	       lastStatusResponse = openSessionsResponse;
-//	   } else if (finishedSessionsResponse != null) {
-//	       lastStatusResponse = finishedSessionsResponse;
-//	   }
-//
-//	   // handle the last statusResponse received (or null if none was received) from the server
-//	   handleStatusResponse(context, lastStatusResponse);
-//	*/
-//
-//}
+func NewStateCaptureOn() *StateCaptureOn {
+	return &StateCaptureOn{}
+
+}
+
+func (s *StateCaptureOn) execute(ctx *BeaconSendingContext) {
+	time.Sleep(DEFAULT_SLEEP_TIME_MILLISECONDS)
+
+	newSessionsResponse := s.sendNewSessionRequests(ctx)
+	if newSessionsResponse.ResponseCode == http.StatusTooManyRequests {
+		ctx.nextState = NewStateCaptureOff()
+		return
+	}
+
+	// TODO - Implement the rest
+
+}
 
 func (s *StateCaptureOn) terminal() bool {
 	return false
 }
 
-func (s *StateCaptureOn) onInterrupted(ctx *BeaconSendingContext) {}
-
 func (s *StateCaptureOn) getShutdownState() BeaconState {
 	panic("Implement me")
+	// TODO Flush
 }
 
 func (s *StateCaptureOn) String() string {
@@ -63,5 +41,27 @@ func (s *StateCaptureOn) String() string {
 }
 
 func (s *StateCaptureOn) sendNewSessionRequests(ctx *BeaconSendingContext) protocol.StatusResponse {
-	panic("Implement me")
+
+	var statusResponse protocol.StatusResponse
+
+	httpClient := ctx.getHttpClient()
+	for _, session := range ctx.getAllNotConfiguredSessions() {
+		if !session.canSendNewSessionRequest() {
+			session.disableCapture()
+			continue
+		}
+
+		statusResponse = httpClient.SendNewSessionRequest(ctx)
+		if statusResponse.ResponseCode < http.StatusBadRequest {
+			updatedAttributes := ctx.updateFrom(statusResponse)
+			newServerConfig := configuration.NewServerConfiguration(updatedAttributes)
+			session.updateServerConfiguration(newServerConfig)
+		} else if statusResponse.ResponseCode == http.StatusTooManyRequests {
+			break
+		} else {
+			session.remainingRequests--
+		}
+	}
+
+	return statusResponse
 }

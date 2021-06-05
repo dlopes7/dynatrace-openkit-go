@@ -3,6 +3,7 @@ package core
 import (
 	"fmt"
 	"github.com/dlopes7/dynatrace-openkit-go/openkitgo"
+	"github.com/dlopes7/dynatrace-openkit-go/openkitgo/configuration"
 	log "github.com/sirupsen/logrus"
 	"sync"
 	"time"
@@ -23,11 +24,11 @@ type Session struct {
 	mutex             sync.Mutex
 }
 
-func (s *Session) EnterAction(actionName string) openkitgo.IAction {
+func (s *Session) EnterAction(actionName string) openkitgo.Action {
 	panic("implement me")
 }
 
-func (s *Session) EnterActionAt(actionName string, timestamp time.Time) openkitgo.IAction {
+func (s *Session) EnterActionAt(actionName string, timestamp time.Time) openkitgo.Action {
 	panic("implement me")
 }
 
@@ -151,6 +152,18 @@ func (s *Session) endWithEvent(sendEvent bool, timestamp time.Time) {
 	s.parent = nil
 }
 
-func (s *Session) ClearCapturedData() {
+func (s *Session) clearCapturedData() {
 	s.beacon.ClearData()
+}
+
+func (s *Session) canSendNewSessionRequest() bool {
+	return s.remainingRequests > 0
+}
+
+func (s *Session) disableCapture() {
+	s.beacon.disableCapture()
+}
+
+func (s *Session) updateServerConfiguration(config *configuration.ServerConfiguration) {
+	s.beacon.updateServerConfiguration(config)
 }

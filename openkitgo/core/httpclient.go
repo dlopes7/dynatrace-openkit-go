@@ -98,11 +98,7 @@ func (h *HttpClient) SendStatusRequest(ctx *BeaconSendingContext) protocol.Statu
 
 	var b strings.Builder
 	b.WriteString(h.monitorURL)
-
-	t := ctx.GetConfigurationTimestamp()
-	if !t.IsZero() {
-		appendQueryParam(&b, QUERY_KEY_CONFIG_TIMESTAMP, strconv.FormatInt(utils.TimeToMillis(t), 10))
-	}
+	h.appendAdditionalQueryParameters(&b, ctx)
 
 	statusUrl := b.String()
 	r, err := h.sendRequest(STATUS, statusUrl, "", nil, "GET")
@@ -110,6 +106,19 @@ func (h *HttpClient) SendStatusRequest(ctx *BeaconSendingContext) protocol.Statu
 		return protocol.NewStatusResponse(h.log, protocol.UndefinedResponseAttributes(), -1, nil)
 	}
 	return *r
+}
+
+func (h *HttpClient) SendNewSessionRequest(ctx *BeaconSendingContext) protocol.StatusResponse {
+
+	var b strings.Builder
+	b.WriteString(h.newSessionURL)
+	h.appendAdditionalQueryParameters(&b, ctx)
+	r, err := h.sendRequest(NEW_SESSION, b.String(), "", nil, "GET")
+	if err != nil {
+		return protocol.NewStatusResponse(h.log, protocol.UndefinedResponseAttributes(), -1, nil)
+	}
+	return *r
+
 }
 
 func (h *HttpClient) sendRequest(requestType RequestType, url string, clientIPAddress string, data []byte, method string) (*protocol.StatusResponse, error) {
@@ -147,6 +156,7 @@ func (h *HttpClient) sendRequest(requestType RequestType, url string, clientIPAd
 		h.log.Error(err.Error())
 		return nil, err
 	}
+	h.log.WithFields(log.Fields{"response": resp.Status, "url": url}).Debug("received http response")
 	defer resp.Body.Close()
 
 	var bodyString string
@@ -159,4 +169,12 @@ func (h *HttpClient) sendRequest(requestType RequestType, url string, clientIPAd
 	statusResponse := protocol.NewStatusResponse(h.log, responseAttributes, resp.StatusCode, resp.Header)
 
 	return &statusResponse, nil
+}
+
+func (h *HttpClient) appendAdditionalQueryParameters(builder *strings.Builder, ctx *BeaconSendingContext) {
+	t := ctx.GetConfigurationTimestamp()
+
+	if !t.IsZero() {
+		appendQueryParam(builder, QUERY_KEY_CONFIG_TIMESTAMP, strconv.FormatInt(utils.TimeToMillis(t), 10))
+	}
 }

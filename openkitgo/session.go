@@ -2,9 +2,9 @@ package openkitgo
 
 import "time"
 
-type ISession interface {
-	EnterAction(actionName string) IAction
-	EnterActionAt(actionName string, timestamp time.Time) IAction
+type Session interface {
+	EnterAction(actionName string) Action
+	EnterActionAt(actionName string, timestamp time.Time) Action
 
 	IdentifyUser(userTag string)
 	IdentifyUserAt(userTag string, timestamp time.Time)
