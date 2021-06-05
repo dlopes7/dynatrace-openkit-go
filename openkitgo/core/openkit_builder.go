@@ -11,7 +11,7 @@ import (
 
 const (
 	DEFAULT_SERVER_ID           = 1
-	OPENKIT_TYPE                = "DynatraceOpenKit"
+	OPENKIT_TYPE                = "DynatraceOpenKitGo"
 	WEBREQUEST_TAG_HEADER       = "X-dynaTrace"
 	DEFAULT_APPLICATION_VERSION = "1.1.0"
 	DEFAULT_OPERATING_SYSTEM    = "OpenKit " + DEFAULT_APPLICATION_VERSION
@@ -142,7 +142,7 @@ func (b *OpenKitBuilder) WithCrashReportingLevel(l configuration.CrashReportingL
 func (b *OpenKitBuilder) Build() *OpenKit {
 
 	openKit := NewOpenKit(b)
-	openKit.Initialize()
+	openKit.initialize()
 
 	return openKit
 

@@ -81,7 +81,7 @@ func NewOpenKit(builder *OpenKitBuilder) *OpenKit {
 	return ok
 }
 
-func (o *OpenKit) Initialize() {
+func (o *OpenKit) initialize() {
 
 	o.beaconCacheEvictor.Start()
 	// TODO sessionWatchdog.Start()
@@ -90,10 +90,10 @@ func (o *OpenKit) Initialize() {
 }
 
 func (o *OpenKit) String() string {
-	return fmt.Sprintf("Openkit(%s, %s)", o.openKitConfiguration.OpenKitType, DEFAULT_APPLICATION_VERSION)
+	return fmt.Sprintf("OpenKit(%s, %s)", o.openKitConfiguration.OpenKitType, DEFAULT_APPLICATION_VERSION)
 }
 func (o *OpenKit) DetailedString() string {
-	return fmt.Sprintf("Openkit(Type=%s, Version=%s, ApplicationName=%s, ApplicationID=%s, DeviceID=%d, OrigDeviceID=%s, EndpointURL=%s)",
+	return fmt.Sprintf("OpenKit(Type=%s, Version=%s, ApplicationName=%s, ApplicationID=%s, DeviceID=%d, OrigDeviceID=%s, EndpointURL=%s)",
 		o.openKitConfiguration.OpenKitType,
 		DEFAULT_APPLICATION_VERSION,
 		o.openKitConfiguration.ApplicationName,
