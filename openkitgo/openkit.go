@@ -31,4 +31,7 @@ type OpenKit interface {
 
 	CreateSession(clientIPAddress string) Session
 	CreateSessionAt(clientIPAddress string, timestamp time.Time) Session
+
+	CreateSessionWithDeviceID(clientIPAddress string, deviceID int64) Session
+	CreateSessionAtWithDeviceID(clientIPAddress string, timestamp time.Time, deviceID int64) Session
 }

@@ -26,17 +26,19 @@ type OpenKit struct {
 	children []OpenKitObject
 }
 
-func (o *OpenKit) CreateSession(clientIPAddress string) openkitgo.Session {
-	return o.CreateSessionAt(clientIPAddress, time.Now())
+func (o *OpenKit) CreateSessionWithDeviceID(clientIPAddress string, deviceID int64) openkitgo.Session {
+	return o.CreateSessionAtWithDeviceID(clientIPAddress, time.Now(), deviceID)
+
 }
 
-func (o *OpenKit) CreateSessionAt(clientIPAddress string, timestamp time.Time) openkitgo.Session {
+func (o *OpenKit) CreateSessionAtWithDeviceID(clientIPAddress string, timestamp time.Time, deviceID int64) openkitgo.Session {
 	o.log.WithFields(log.Fields{"clientIPAddress": clientIPAddress, "timestamp": timestamp}).Debug("OpenKit.CreateSessionAt()")
 
 	o.mutex.Lock()
 	defer o.mutex.Unlock()
 	if !o.isShutDown {
 
+		o.openKitConfiguration.DeviceID = deviceID
 		sessionProxy := NewSessionProxy(
 			o.log,
 			o,
@@ -52,7 +54,14 @@ func (o *OpenKit) CreateSessionAt(clientIPAddress string, timestamp time.Time) o
 	}
 
 	return NewNullSession()
+}
 
+func (o *OpenKit) CreateSession(clientIPAddress string) openkitgo.Session {
+	return o.CreateSessionAtWithDeviceID(clientIPAddress, time.Now(), o.openKitConfiguration.DeviceID)
+}
+
+func (o *OpenKit) CreateSessionAt(clientIPAddress string, timestamp time.Time) openkitgo.Session {
+	return o.CreateSessionAtWithDeviceID(clientIPAddress, timestamp, o.openKitConfiguration.DeviceID)
 }
 
 func NewOpenKit(builder *OpenKitBuilder) openkitgo.OpenKit {

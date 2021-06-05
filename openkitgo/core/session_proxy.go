@@ -244,6 +244,7 @@ func (p *SessionProxy) createAndAssignCurrentSession(initialServerConfig *config
 }
 
 func (p *SessionProxy) createSessionAt(parent OpenKitComposite, timestamp time.Time) openkitgo.Session {
+
 	config := configuration.NewBeaconConfiguration(
 		p.openKitConfiguration,
 		p.privacyConfiguration,
