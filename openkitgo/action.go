@@ -1,26 +1,34 @@
 package openkitgo
 
-import (
-	"time"
-)
+import "time"
 
-type Action interface {
-	// TODO - Implement these
-	// ReportEvent(string)
-	// ReportIntValue(string, int)
-	// ReportDoubleValue(string, float64)
-	// ReportStringValue(string, string)
-	ReportStringValueAt(string, string, time.Time)
-	// ReportError(string, int, string)
-	TraceWebRequest(string) *WebRequestTracer
-	TraceWebRequestAt(string, time.Time) *WebRequestTracer
-	EnterAction(string) Action
-	EnterActionAt(string, time.Time) Action
-	LeaveAction()
-	LeaveActionAt(time.Time)
+type IAction interface {
+	ReportEvent(eventName string) IAction
+	ReportEventAt(eventName string, timestamp time.Time) IAction
 
-	getName() string
-	getParentActionID() int
-	getStartTime() time.Time
-	getEndTime() time.Time
+	ReportInt64Value(valueName string, value int64) IAction
+	ReportInt64ValueAt(valueName string, value int64, timestamp time.Time) IAction
+
+	ReportStringValue(valueName string, value string) IAction
+	ReportStringValueAt(valueName string, value string, timestamp time.Time) IAction
+
+	ReportFloat64Value(valueName string, value float64) IAction
+	ReportFloat64ValueAt(valueName string, value float64, timestamp time.Time) IAction
+
+	ReportError(errorName string, errorCode int) IAction
+	ReportErrorAt(errorName string, errorCode int, timestamp time.Time) IAction
+
+	ReportException(errorName string, causeName string, causeDescription string, causeStack string) IAction
+	ReportExceptionAt(errorName string, causeName string, causeDescription string, causeStack string, timestamp time.Time) IAction
+
+	// TODO TraceWebRequest()
+	// TODO TraceWebRequestAt()
+
+	LeaveAction() IAction
+	LeaveActionAt(timestamp time.Time) IAction
+
+	CancelAction() IAction
+	CancelActionAt(timestamp time.Time) IAction
+
+	GetDuration() time.Duration
 }

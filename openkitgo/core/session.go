@@ -1,7 +1,10 @@
 package core
 
 import (
+	"fmt"
+	"github.com/dlopes7/dynatrace-openkit-go/openkitgo"
 	log "github.com/sirupsen/logrus"
+	"sync"
 	"time"
 )
 
@@ -16,6 +19,36 @@ type Session struct {
 	State             SessionState
 	remainingRequests int
 	splitEndTime      time.Time
+	children          []OpenKitObject
+	mutex             sync.Mutex
+}
+
+func (s *Session) EnterAction(actionName string) openkitgo.IAction {
+	panic("implement me")
+}
+
+func (s *Session) EnterActionAt(actionName string, timestamp time.Time) openkitgo.IAction {
+	panic("implement me")
+}
+
+func (s *Session) IdentifyUser(userTag string) {
+	panic("implement me")
+}
+
+func (s *Session) IdentifyUserAt(userTag string, timestamp time.Time) {
+	panic("implement me")
+}
+
+func (s *Session) ReportCrash(errorName string, reason string, stacktrace string) {
+	panic("implement me")
+}
+
+func (s *Session) ReportCrashAt(errorName string, reason string, stacktrace string, timestamp time.Time) {
+	panic("implement me")
+}
+
+func (s *Session) String() string {
+	return fmt.Sprintf("Session(%d)", s.beacon.GetSessionNumber())
 }
 
 func NewSession(log *log.Logger, parent OpenKitComposite, beacon *Beacon) *Session {
@@ -32,19 +65,53 @@ func NewSession(log *log.Logger, parent OpenKitComposite, beacon *Beacon) *Sessi
 	return s
 }
 
-func (s *Session) StoreChildInList(child OpenKitObject) {}
-func (s *Session) RemoveChildFromList(child OpenKitObject) bool {
-	return true
+func (s *Session) getCopyOfChildObjects() []OpenKitObject {
+	return s.children[:]
 }
-func (s *Session) GetCopyOfChildObjects() []OpenKitObject {
-	return []OpenKitObject{}
+
+func (s *Session) onChildClosed(child OpenKitObject) {
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+
+	s.State.mutex.Lock()
+	s.removeChildFromList(child)
+
+	if s.State.WasTriedForEnding() && s.getChildCount() == 0 {
+		s.endWithEvent(false, time.Now())
+	}
+
 }
-func (s *Session) GetChildCount() int {
-	return 1
+
+func (s *Session) storeChildInList(child OpenKitObject) {
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+	s.children = append(s.children, child)
+
 }
-func (s *Session) OnChildClosed(child OpenKitObject) {}
-func (s *Session) GetActionID() int {
-	return 0
+
+func (s *Session) removeChildFromList(child OpenKitObject) bool {
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+	removed := false
+
+	var keep []OpenKitObject
+	for _, c := range s.children {
+		if c != child {
+			keep = append(keep, c)
+		} else {
+			removed = true
+		}
+	}
+	s.children = keep
+	return removed
+}
+
+func (s *Session) getChildCount() int {
+	return len(s.children)
+}
+
+func (s *Session) getActionID() int {
+	return DEFAULT_ACTION_ID
 }
 
 func (s *Session) close() {
@@ -71,7 +138,7 @@ func (s *Session) endWithEvent(sendEvent bool, timestamp time.Time) {
 		return
 	}
 
-	for _, child := range s.GetCopyOfChildObjects() {
+	for _, child := range s.getCopyOfChildObjects() {
 		child.closeAt(timestamp)
 	}
 
@@ -80,7 +147,7 @@ func (s *Session) endWithEvent(sendEvent bool, timestamp time.Time) {
 	}
 
 	s.State.MarkAsFinished()
-	s.parent.OnChildClosed(s)
+	s.parent.onChildClosed(s)
 	s.parent = nil
 }
 

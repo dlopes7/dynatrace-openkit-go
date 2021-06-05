@@ -5,10 +5,10 @@ const (
 )
 
 type OpenKitComposite interface {
-	StoreChildInList(child OpenKitObject)
-	RemoveChildFromList(child OpenKitObject) bool
-	GetCopyOfChildObjects() []OpenKitObject
-	GetChildCount() int
-	OnChildClosed(child OpenKitObject)
-	GetActionID() int
+	storeChildInList(child OpenKitObject)
+	removeChildFromList(child OpenKitObject) bool
+	getCopyOfChildObjects() []OpenKitObject
+	getChildCount() int
+	onChildClosed(child OpenKitObject)
+	getActionID() int
 }

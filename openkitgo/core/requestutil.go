@@ -1,4 +1,4 @@
-package communication
+package core
 
 import (
 	"github.com/dlopes7/dynatrace-openkit-go/openkitgo/protocol"

@@ -1,4 +1,4 @@
-package communication
+package core
 
 import (
 	"github.com/dlopes7/dynatrace-openkit-go/openkitgo/protocol"
@@ -38,6 +38,7 @@ func (s *StateInit) execute(ctx *BeaconSendingContext) {
 	if ctx.IsShutdownRequested() {
 		ctx.initWg.Done()
 		ctx.initOk = false
+		ctx.nextState = s.getShutdownState()
 	} else if statusResponse.ResponseCode < http.StatusBadRequest {
 		ctx.handleStatusResponse(statusResponse)
 
@@ -73,7 +74,7 @@ func (s *StateInit) executeStatusRequest(ctx *BeaconSendingContext) protocol.Sta
 
 		if statusResponse.ResponseCode == 429 {
 			sleepTime = statusResponse.GetRetryAfter()
-			// TODO - ctx.disableCaptureAndClear
+			ctx.disableCaptureAndClear()
 		}
 		time.Sleep(sleepTime)
 		s.reInitDelayIndex = int(math.Min(float64(s.reInitDelayIndex+1), float64(len(s.reInitDelayMilliseconds)-1)))
@@ -87,11 +88,8 @@ func (s *StateInit) terminal() bool {
 	return false
 }
 
-func (s *StateInit) onInterrupted(ctx *BeaconSendingContext) {}
-
 func (s *StateInit) getShutdownState() BeaconState {
-	// TODO return StateTerminal
-	return s
+	return &StateTerminal{}
 }
 
 func (*StateInit) String() string {

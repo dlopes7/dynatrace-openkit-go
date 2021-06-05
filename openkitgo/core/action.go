@@ -1,41 +1,11 @@
 package core
 
 import (
+	"github.com/dlopes7/dynatrace-openkit-go/openkitgo"
 	log "github.com/sirupsen/logrus"
 	"sync"
 	"time"
 )
-
-type IAction interface {
-	ReportEvent(eventName string) IAction
-	ReportEventAt(eventName string, timestamp time.Time) IAction
-
-	ReportInt64Value(valueName string, value int64) IAction
-	ReportInt64ValueAt(valueName string, value int64, timestamp time.Time) IAction
-
-	ReportStringValue(valueName string, value string) IAction
-	ReportStringValueAt(valueName string, value string, timestamp time.Time) IAction
-
-	ReportFloat64Value(valueName string, value float64) IAction
-	ReportFloat64ValueAt(valueName string, value float64, timestamp time.Time) IAction
-
-	ReportError(errorName string, errorCode int) IAction
-	ReportErrorAt(errorName string, errorCode int, timestamp time.Time) IAction
-
-	ReportException(errorName string, causeName string, causeDescription string, causeStack string) IAction
-	ReportExceptionAt(errorName string, causeName string, causeDescription string, causeStack string, timestamp time.Time) IAction
-
-	// TODO TraceWebRequest()
-	// TODO TraceWebRequestAt()
-
-	LeaveAction() IAction
-	LeaveActionAt(timestamp time.Time) IAction
-
-	CancelAction() IAction
-	CancelActionAt(timestamp time.Time) IAction
-
-	GetDuration() time.Duration
-}
 
 type Action struct {
 	log             *log.Logger
@@ -57,7 +27,7 @@ func NewAction(log *log.Logger, parent OpenKitComposite, name string, beacon *Be
 	return &Action{
 		log:             log,
 		parent:          parent,
-		parentActionID:  parent.GetActionID(),
+		parentActionID:  parent.getActionID(),
 		id:              beacon.CreateID(),
 		name:            name,
 		startTime:       startTime,
@@ -69,67 +39,67 @@ func NewAction(log *log.Logger, parent OpenKitComposite, name string, beacon *Be
 
 }
 
-func (a *Action) ReportEvent(eventName string) IAction {
+func (a *Action) ReportEvent(eventName string) openkitgo.IAction {
 	panic("implement me")
 }
 
-func (a *Action) ReportEventAt(eventName string, timestamp time.Time) IAction {
+func (a *Action) ReportEventAt(eventName string, timestamp time.Time) openkitgo.IAction {
 	panic("implement me")
 }
 
-func (a *Action) ReportInt64Value(valueName string, value int64) IAction {
+func (a *Action) ReportInt64Value(valueName string, value int64) openkitgo.IAction {
 	panic("implement me")
 }
 
-func (a *Action) ReportInt64ValueAt(valueName string, value int64, timestamp time.Time) IAction {
+func (a *Action) ReportInt64ValueAt(valueName string, value int64, timestamp time.Time) openkitgo.IAction {
 	panic("implement me")
 }
 
-func (a *Action) ReportStringValue(valueName string, value string) IAction {
+func (a *Action) ReportStringValue(valueName string, value string) openkitgo.IAction {
 	panic("implement me")
 }
 
-func (a *Action) ReportStringValueAt(valueName string, value string, timestamp time.Time) IAction {
+func (a *Action) ReportStringValueAt(valueName string, value string, timestamp time.Time) openkitgo.IAction {
 	panic("implement me")
 }
 
-func (a *Action) ReportFloat64Value(valueName string, value float64) IAction {
+func (a *Action) ReportFloat64Value(valueName string, value float64) openkitgo.IAction {
 	panic("implement me")
 }
 
-func (a *Action) ReportFloat64ValueAt(valueName string, value float64, timestamp time.Time) IAction {
+func (a *Action) ReportFloat64ValueAt(valueName string, value float64, timestamp time.Time) openkitgo.IAction {
 	panic("implement me")
 }
 
-func (a *Action) ReportError(errorName string, errorCode int) IAction {
+func (a *Action) ReportError(errorName string, errorCode int) openkitgo.IAction {
 	panic("implement me")
 }
 
-func (a *Action) ReportErrorAt(errorName string, errorCode int, timestamp time.Time) IAction {
+func (a *Action) ReportErrorAt(errorName string, errorCode int, timestamp time.Time) openkitgo.IAction {
 	panic("implement me")
 }
 
-func (a *Action) ReportException(errorName string, causeName string, causeDescription string, causeStack string) IAction {
+func (a *Action) ReportException(errorName string, causeName string, causeDescription string, causeStack string) openkitgo.IAction {
 	panic("implement me")
 }
 
-func (a *Action) ReportExceptionAt(errorName string, causeName string, causeDescription string, causeStack string, timestamp time.Time) IAction {
+func (a *Action) ReportExceptionAt(errorName string, causeName string, causeDescription string, causeStack string, timestamp time.Time) openkitgo.IAction {
 	panic("implement me")
 }
 
-func (a *Action) LeaveAction() IAction {
+func (a *Action) LeaveAction() openkitgo.IAction {
 	panic("implement me")
 }
 
-func (a *Action) LeaveActionAt(timestamp time.Time) IAction {
+func (a *Action) LeaveActionAt(timestamp time.Time) openkitgo.IAction {
 	panic("implement me")
 }
 
-func (a *Action) CancelAction() IAction {
+func (a *Action) CancelAction() openkitgo.IAction {
 	panic("implement me")
 }
 
-func (a *Action) CancelActionAt(timestamp time.Time) IAction {
+func (a *Action) CancelActionAt(timestamp time.Time) openkitgo.IAction {
 	panic("implement me")
 }
 

@@ -1,20 +1,10 @@
 package caching
 
 import (
-	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
-	"os"
 	"testing"
 	"time"
 )
-
-var logger *log.Logger
-
-func TestMain(m *testing.M) {
-	logger = log.New()
-	logger.SetLevel(log.DebugLevel)
-	os.Exit(m.Run())
-}
 
 func TestAddEventData(t *testing.T) {
 

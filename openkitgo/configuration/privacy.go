@@ -21,8 +21,6 @@ type PrivacyConfiguration struct {
 	CrashReportingLevel CrashReportingLevel
 }
 
-// TODO func NewPrivacyConfiguration(builder)
-
 func (c *PrivacyConfiguration) IsDeviceIDSendingAllowed() bool {
 	return c.DataCollectionLevel == DATA_USER_BEHAVIOR
 }

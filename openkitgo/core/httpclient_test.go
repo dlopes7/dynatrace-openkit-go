@@ -1,16 +1,10 @@
-package communication
+package core
 
 import (
 	"github.com/stretchr/testify/assert"
 	"net/http"
 	"testing"
 )
-
-func assertEqual(t *testing.T, a interface{}, b interface{}) {
-	if a != b {
-		t.Fatalf("%s != %s", a, b)
-	}
-}
 
 func TestBuildMonitorURL(t *testing.T) {
 

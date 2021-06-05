@@ -133,24 +133,24 @@ func (e *BeaconCacheEntry) removeRecordsOlderThan(timestamp time.Time) int {
 	numRecordsRemoved := 0
 
 	var keepEvents []*BeaconCacheRecord
-	for _, eventRecord := range e.eventDataBeingSent {
+	for _, eventRecord := range e.eventData {
 		if eventRecord.timestamp.After(timestamp) {
 			keepEvents = append(keepEvents, eventRecord)
 		} else {
 			numRecordsRemoved += 1
 		}
 	}
-	e.eventDataBeingSent = keepEvents
+	e.eventData = keepEvents
 
 	var keepActions []*BeaconCacheRecord
-	for _, actionRecord := range e.actionDataBeingSent {
+	for _, actionRecord := range e.actionData {
 		if actionRecord.timestamp.After(timestamp) {
 			keepActions = append(keepActions, actionRecord)
 		} else {
 			numRecordsRemoved += 1
 		}
 	}
-	e.actionDataBeingSent = keepActions
+	e.actionData = keepActions
 
 	return numRecordsRemoved
 

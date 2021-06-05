@@ -1,4 +1,4 @@
-package communication
+package core
 
 import (
 	"bytes"
@@ -9,7 +9,6 @@ import (
 	log "github.com/sirupsen/logrus"
 	"io/ioutil"
 	"net/http"
-	"net/url"
 	"strconv"
 	"strings"
 )
@@ -52,7 +51,7 @@ type HttpClient struct {
 
 }
 
-func NewHttpClient(log *log.Logger, config configuration.HttpClientConfiguration) HttpClient {
+func NewHttpClient(log *log.Logger, config *configuration.HttpClientConfiguration) HttpClient {
 	return HttpClient{
 		monitorURL:    buildMonitorURL(config.BaseURL, config.ApplicationID, config.ServerID),
 		newSessionURL: buildNewSessionURL(config.BaseURL, config.ApplicationID, config.ServerID),
@@ -92,7 +91,7 @@ func appendQueryParam(b *strings.Builder, key string, value string) {
 	b.WriteRune('&')
 	b.WriteString(key)
 	b.WriteRune('=')
-	b.WriteString(url.QueryEscape(value))
+	b.WriteString(utils.PercentEncode(value))
 }
 
 func (h *HttpClient) SendStatusRequest(ctx *BeaconSendingContext) protocol.StatusResponse {

@@ -1,8 +1,7 @@
-package communication
+package core
 
 import (
 	"github.com/dlopes7/dynatrace-openkit-go/openkitgo/configuration"
-	"github.com/dlopes7/dynatrace-openkit-go/openkitgo/core"
 	"github.com/dlopes7/dynatrace-openkit-go/openkitgo/protocol"
 	log "github.com/sirupsen/logrus"
 	"sync"
@@ -10,17 +9,13 @@ import (
 	"time"
 )
 
-const (
-	DEFAULT_SLEEP_TIME_MILLISECONDS = 1 * time.Second
-)
-
 type BeaconSendingContext struct {
 	log                     *log.Logger
 	mutex                   sync.Mutex
-	serverConfiguration     configuration.ServerConfiguration
+	serverConfiguration     *configuration.ServerConfiguration
 	lastResponseAttributes  protocol.ResponseAttributes
-	httpClientConfiguration configuration.HttpClientConfiguration
-	sessions                []*core.Session
+	httpClientConfiguration *configuration.HttpClientConfiguration
+	sessions                []*Session
 
 	shutdown int32 // atomic
 	initWg   sync.WaitGroup
@@ -34,7 +29,7 @@ type BeaconSendingContext struct {
 }
 
 func NewBeaconSendingContext(log *log.Logger,
-	httpClientConfiguration configuration.HttpClientConfiguration) *BeaconSendingContext {
+	httpClientConfiguration *configuration.HttpClientConfiguration) *BeaconSendingContext {
 
 	return &BeaconSendingContext{
 		log:                     log,
@@ -47,6 +42,7 @@ func NewBeaconSendingContext(log *log.Logger,
 
 }
 
+// executeCurrentState runs until a shutdown is requested
 func (c *BeaconSendingContext) executeCurrentState() {
 	c.nextState = nil
 	c.currentState.execute(c)
@@ -90,14 +86,14 @@ func (c *BeaconSendingContext) IsShutdownRequested() bool {
 func (c *BeaconSendingContext) handleStatusResponse(statusResponse protocol.StatusResponse) {
 	if statusResponse.ResponseCode >= 400 {
 		c.disableCapture()
-		// TODO clearAllSessionData
+		c.clearAllSessionData()
 		return
 	}
 
 	c.updateFrom(statusResponse)
 
 	if !c.isCaptureOn() {
-		// TODO clearAllSessionData
+		c.clearAllSessionData()
 	}
 
 }
@@ -161,7 +157,7 @@ func (c *BeaconSendingContext) GetSendInterval() time.Duration {
 	return c.serverConfiguration.SendInterval
 }
 
-func (c *BeaconSendingContext) GetLastServerConfiguration() configuration.ServerConfiguration {
+func (c *BeaconSendingContext) GetLastServerConfiguration() *configuration.ServerConfiguration {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
 	return c.serverConfiguration
@@ -174,7 +170,7 @@ func (c *BeaconSendingContext) disableCaptureAndClear() {
 
 func (c *BeaconSendingContext) clearAllSessionData() {
 
-	var keepSessions []*core.Session
+	var keepSessions []*Session
 
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
@@ -187,9 +183,9 @@ func (c *BeaconSendingContext) clearAllSessionData() {
 	c.sessions = keepSessions
 }
 
-func (c *BeaconSendingContext) getAllNotConfiguredSessions() []*core.Session {
+func (c *BeaconSendingContext) getAllNotConfiguredSessions() []*Session {
 
-	var filtered []*core.Session
+	var filtered []*Session
 
 	for _, session := range c.sessions {
 		if !session.State.IsConfigured() {
@@ -199,9 +195,9 @@ func (c *BeaconSendingContext) getAllNotConfiguredSessions() []*core.Session {
 	return filtered
 }
 
-func (c *BeaconSendingContext) getAllOpenAndConfiguredSessions() []*core.Session {
+func (c *BeaconSendingContext) getAllOpenAndConfiguredSessions() []*Session {
 
-	var filtered []*core.Session
+	var filtered []*Session
 
 	for _, session := range c.sessions {
 		if !session.State.IsConfiguredAndOpen() {
@@ -211,9 +207,9 @@ func (c *BeaconSendingContext) getAllOpenAndConfiguredSessions() []*core.Session
 	return filtered
 }
 
-func (c *BeaconSendingContext) getAllFinishedAndConfiguredSessions() []*core.Session {
+func (c *BeaconSendingContext) getAllFinishedAndConfiguredSessions() []*Session {
 
-	var filtered []*core.Session
+	var filtered []*Session
 
 	for _, session := range c.sessions {
 		if !session.State.IsConfiguredAndFinished() {
@@ -227,12 +223,12 @@ func (c *BeaconSendingContext) GetCurrentServerId() int {
 	return c.httpClientConfiguration.ServerID
 }
 
-func (c *BeaconSendingContext) AddSession(session *core.Session) {
+func (c *BeaconSendingContext) AddSession(session *Session) {
 	c.sessions = append(c.sessions, session)
 }
 
-func (c *BeaconSendingContext) RemoveSession(session *core.Session) {
-	var keep []*core.Session
+func (c *BeaconSendingContext) RemoveSession(session *Session) {
+	var keep []*Session
 
 	for _, s := range c.sessions {
 		if s != session {

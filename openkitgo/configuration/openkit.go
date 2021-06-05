@@ -1,13 +1,18 @@
 package configuration
 
 import (
-	"github.com/dlopes7/dynatrace-openkit-go/openkitgo"
 	"net/http"
+	"time"
 )
 
 const (
-	ENCODING_CHARSET    = "UTF-8"
-	RESERVED_CHARACTERS = '_'
+	ENCODING_CHARSET                       = "UTF-8"
+	RESERVED_CHARACTERS                    = "_"
+	DEFAULT_MAX_RECORD_AGE                 = 105 * time.Minute
+	DEFAULT_UPPER_MEMORY_BOUNDARY_IN_BYTES = int64(100 * 1024 * 1024)
+	DEFAULT_LOWER_MEMORY_BOUNDARY_IN_BYTES = int64(80 * 1024 * 1024)
+	DEFAULT_DATA_COLLECTION_LEVEL          = DATA_USER_BEHAVIOR
+	DEFAULT_CRASH_REPORTING_LEVEL          = CRASH_OPT_IN_CRASHES
 )
 
 type OpenKitConfiguration struct {
@@ -22,12 +27,6 @@ type OpenKitConfiguration struct {
 	OperatingSystem             string
 	Manufacturer                string
 	ModelID                     string
-	DefaultServerID             string
+	DefaultServerID             int
 	Transport                   http.Transport
-}
-
-func NewOpenKitConfiguration(builder openkitgo.OpenKitBuilder) *OpenKitConfiguration {
-	// TODO - Create from builder
-	return &OpenKitConfiguration{}
-
 }

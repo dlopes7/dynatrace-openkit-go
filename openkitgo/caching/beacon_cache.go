@@ -12,6 +12,7 @@ type BeaconCache struct {
 	mutex            sync.Mutex
 	beacons          map[BeaconKey]*BeaconCacheEntry
 	cacheSizeInBytes int64 // Atomic
+	observers        []*chan bool
 }
 
 func NewBeaconCache(log *log.Logger) *BeaconCache {
@@ -76,8 +77,13 @@ func (c *BeaconCache) getCachedEntry(key BeaconKey) *BeaconCacheEntry {
 }
 
 func (c *BeaconCache) onDataAdded() {
-	// TODO c.setChanged()
-	// TODO c.notifyObservers()
+	c.notifyObservers()
+}
+
+func (c *BeaconCache) notifyObservers() {
+	for _, o := range c.observers {
+		*o <- true
+	}
 }
 
 func (c *BeaconCache) DeleteCacheEntry(key BeaconKey) {
@@ -157,7 +163,7 @@ func (c *BeaconCache) ResetChunkedData(key BeaconKey) {
 
 }
 
-func (c *BeaconCache) getBeaconKeys() []BeaconKey {
+func (c *BeaconCache) GetBeaconKeys() []BeaconKey {
 	var result []BeaconKey
 
 	c.mutex.Lock()
@@ -187,6 +193,23 @@ func (c *BeaconCache) evictRecordsByAge(key BeaconKey, timestamp time.Time) int 
 	return numRecordsRemoved
 }
 
+func (c *BeaconCache) evictRecordsByNumber(key BeaconKey, numRecords int) int {
+	entry := c.getCachedEntry(key)
+	if entry == nil {
+		return 0
+	}
+
+	numRecordsRemoved := 0
+
+	entry.mutex.Lock()
+	numRecordsRemoved = entry.removeOldestRecords(numRecords)
+	entry.mutex.Unlock()
+
+	log.WithFields(log.Fields{"key": key.String(), "numRecords": numRecords, "evicted": numRecordsRemoved}).Debug("BeaconCache.evictRecordsByNumber()")
+
+	return numRecordsRemoved
+}
+
 func (c *BeaconCache) getNumBytesInCache() int64 {
 	return atomic.LoadInt64(&c.cacheSizeInBytes)
 }
@@ -201,4 +224,8 @@ func (c *BeaconCache) IsEmpty(key BeaconKey) bool {
 	defer entry.mutex.Unlock()
 	return entry.totalNumBytes == 0
 
+}
+
+func (c *BeaconCache) AddObservable(channel *chan bool) {
+	c.observers = append(c.observers, channel)
 }
