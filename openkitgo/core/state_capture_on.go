@@ -19,7 +19,7 @@ func (s *StateCaptureOn) execute(ctx *BeaconSendingContext) {
 
 	newSessionsResponse := s.sendNewSessionRequests(ctx)
 	if newSessionsResponse.ResponseCode == http.StatusTooManyRequests {
-		ctx.nextState = NewStateCaptureOff()
+		ctx.nextState = NewStateCaptureOff(0)
 		return
 	}
 
