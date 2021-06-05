@@ -17,7 +17,6 @@ func NewSpaceEvictionStrategy(log *log.Logger, cache *BeaconCache, configuration
 }
 
 func (s *SpaceEvictionStrategy) execute() {
-	s.log.Debug("SpaceEvictionStrategy.execute()")
 	if s.cache.getNumBytesInCache() > s.configuration.CacheSizeUpperBound {
 		numRecordsRemoved := 0
 		for _, key := range s.cache.GetBeaconKeys() {
@@ -39,7 +38,6 @@ func NewTimeEvictionStrategy(log *log.Logger, cache *BeaconCache, configuration 
 }
 
 func (s *TimeEvictionStrategy) execute() {
-	s.log.Debug("TimeEvictionStrategy.execute()")
 
 	if s.lastRunTimestamp.IsZero() {
 		s.lastRunTimestamp = time.Now()
