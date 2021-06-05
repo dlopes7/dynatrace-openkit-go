@@ -13,12 +13,12 @@ import (
 	"strings"
 )
 
-type RequestType string
+type RequestType int
 
 const (
-	STATUS      RequestType = "Status"
-	BEACON      RequestType = "BeaconConfiguration"
-	NEW_SESSION RequestType = "NewSession"
+	STATUS      RequestType = 0
+	BEACON      RequestType = 1
+	NEW_SESSION RequestType = 2
 
 	REQUEST_TYPE_MOBILE             = "type=m"
 	QUERY_KEY_SERVER_ID             = "srvid"
@@ -114,6 +114,19 @@ func (h *HttpClient) SendNewSessionRequest(ctx *BeaconSendingContext) protocol.S
 	b.WriteString(h.newSessionURL)
 	h.appendAdditionalQueryParameters(&b, ctx)
 	r, err := h.sendRequest(NEW_SESSION, b.String(), "", nil, "GET")
+	if err != nil {
+		return protocol.NewStatusResponse(h.log, protocol.UndefinedResponseAttributes(), -1, nil)
+	}
+	return *r
+
+}
+
+func (h *HttpClient) sendBeaconRequest(clientIPAddress string, data []byte, ctx *BeaconSendingContext) protocol.StatusResponse {
+
+	var b strings.Builder
+	b.WriteString(h.monitorURL)
+	h.appendAdditionalQueryParameters(&b, ctx)
+	r, err := h.sendRequest(BEACON, b.String(), clientIPAddress, data, "POST")
 	if err != nil {
 		return protocol.NewStatusResponse(h.log, protocol.UndefinedResponseAttributes(), -1, nil)
 	}
