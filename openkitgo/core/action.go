@@ -12,7 +12,7 @@ type Action struct {
 	parent          OpenKitComposite
 	parentActionID  int
 	mutex           sync.Mutex
-	id              uint32
+	id              int32
 	name            string
 	startTime       time.Time
 	endTime         time.Time

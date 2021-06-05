@@ -96,8 +96,8 @@ const (
 )
 
 type Beacon struct {
-	nextID             uint32 // Atomic
-	nextSequenceNumber uint32 // Atomic
+	nextID             int32 // Atomic
+	nextSequenceNumber int32 // Atomic
 	key                caching.BeaconKey
 	sessionStartTime   time.Time
 	deviceID           int64
@@ -147,11 +147,11 @@ func (b *Beacon) EndSession() {
 	b.EndSessionAt(time.Now())
 }
 
-func (b *Beacon) CreateID() uint32 {
-	return atomic.AddUint32(&b.nextID, 1)
+func (b *Beacon) CreateID() int32 {
+	return atomic.AddInt32(&b.nextID, 1)
 }
-func (b *Beacon) CreateSequenceNumber() uint32 {
-	return atomic.AddUint32(&b.nextSequenceNumber, 1)
+func (b *Beacon) CreateSequenceNumber() int32 {
+	return atomic.AddInt32(&b.nextSequenceNumber, 1)
 }
 
 func (b *Beacon) GetSessionStartTime() time.Time {
@@ -245,7 +245,7 @@ func (b *Beacon) EndSessionAt(timestamp time.Time) {
 	var builder strings.Builder
 	b.buildBasicEventDataWithoutName(&builder, SESSION_END)
 	b.addKeyValuePair(&builder, BEACON_KEY_PARENT_ACTION_ID, 0)
-	b.addKeyValuePair(&builder, BEACON_KEY_START_SEQUENCE_NUMBER, atomic.AddUint32(&b.nextSequenceNumber, 1))
+	b.addKeyValuePair(&builder, BEACON_KEY_START_SEQUENCE_NUMBER, atomic.AddInt32(&b.nextSequenceNumber, 1))
 
 	sessionDuration := timestamp.Sub(b.sessionStartTime).Milliseconds()
 	b.addKeyValuePair(&builder, BEACON_KEY_TIME_0, sessionDuration)
@@ -296,7 +296,7 @@ func (b *Beacon) buildEvent(builder *strings.Builder, eventType EventType, name 
 	b.buildBasicEventData(builder, eventType, name)
 
 	b.addKeyValuePair(builder, BEACON_KEY_PARENT_ACTION_ID, parentActionID)
-	b.addKeyValuePair(builder, BEACON_KEY_START_SEQUENCE_NUMBER, atomic.AddUint32(&b.nextSequenceNumber, 1))
+	b.addKeyValuePair(builder, BEACON_KEY_START_SEQUENCE_NUMBER, atomic.AddInt32(&b.nextSequenceNumber, 1))
 	b.addKeyValuePair(builder, BEACON_KEY_TIME_0, timestamp.Sub(b.sessionStartTime).Milliseconds())
 
 }
