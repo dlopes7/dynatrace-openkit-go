@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/dlopes7/dynatrace-openkit-go/openkitgo"
 	"github.com/dlopes7/dynatrace-openkit-go/openkitgo/configuration"
+	"github.com/dlopes7/dynatrace-openkit-go/openkitgo/protocol"
 	log "github.com/sirupsen/logrus"
 	"sync"
 	"time"
@@ -166,4 +167,17 @@ func (s *Session) disableCapture() {
 
 func (s *Session) updateServerConfiguration(config *configuration.ServerConfiguration) {
 	s.beacon.updateServerConfiguration(config)
+}
+
+func (s *Session) sendBeacon(ctx *BeaconSendingContext) protocol.StatusResponse {
+	return s.beacon.send(ctx)
+}
+
+func (s *Session) isDataSendingAllowed() bool {
+	return s.State.IsConfigured() && s.beacon.isDataCapturingEnabled()
+}
+
+func (s *Session) isEmpty() bool {
+	return s.beacon.IsEmpty()
+
 }

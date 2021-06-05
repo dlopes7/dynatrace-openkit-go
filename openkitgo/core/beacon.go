@@ -359,6 +359,49 @@ func (b *Beacon) updateServerConfiguration(config *configuration.ServerConfigura
 	b.configuration.ServerConfiguration = config
 }
 
+func (b *Beacon) send(ctx *BeaconSendingContext) protocol.StatusResponse {
+	httpClient := ctx.getHttpClient()
+
+	statusResponse := protocol.StatusResponse{}
+
+	b.cache.PrepareDataForSending(b.key)
+	for b.cache.HasDataForSending(b.key) {
+		prefix := b.appendMutableBeaconData(b.immutableBasicBeaconData)
+
+		chunk := b.cache.GetNextBeaconChunk(b.key, prefix, b.configuration.ServerConfiguration.BeaconSizeInBytes-1024, BEACON_DATA_DELIMITER)
+
+		if chunk == "" {
+			return statusResponse
+		}
+
+		statusResponse := httpClient.sendBeaconRequest(b.clientIPAddress, []byte(chunk), ctx)
+		if statusResponse.ResponseCode > 400 {
+			b.cache.ResetChunkedData(b.key)
+			break
+		} else {
+			b.cache.RemoveChunkedData(b.key)
+		}
+	}
+	return statusResponse
+}
+
+func (b *Beacon) appendMutableBeaconData(immutableBasicBeaconData string) string {
+
+	var builder strings.Builder
+
+	builder.WriteString(immutableBasicBeaconData)
+
+	b.addKeyValuePair(&builder, BEACON_KEY_VISIT_STORE_VERSION, b.GetVisitStoreVersion())
+	if b.GetVisitStoreVersion() > 1 {
+		b.addKeyValuePair(&builder, BEACON_KEY_SESSION_SEQUENCE, b.key.BeaconSeqNo)
+	}
+	builder.WriteRune(BEACON_DATA_DELIMITER)
+	builder.WriteString(b.createTimestampData())
+	builder.WriteRune(BEACON_DATA_DELIMITER)
+	builder.WriteString(b.createMultiplicityData())
+	return builder.String()
+}
+
 func truncate(name string) string {
 	name = strings.TrimSpace(name)
 	if len(name) > MAX_NAME_LEN {
