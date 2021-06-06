@@ -147,11 +147,19 @@ func (p *SessionProxy) EnterActionAt(actionName string, timestamp time.Time) ope
 }
 
 func (p *SessionProxy) IdentifyUser(userTag string) {
-	panic("implement me")
+	p.IdentifyUserAt(userTag, time.Now())
 }
 
 func (p *SessionProxy) IdentifyUserAt(userTag string, timestamp time.Time) {
-	panic("implement me")
+	p.log.WithFields(log.Fields{"userTag": userTag}).Debug("SessionProxy.IdentifyUser()")
+
+	if !p.isFinished {
+		s := p.getOrSplitCurrentSessionByEvents(timestamp)
+		p.lastInteractionTime = time.Now()
+		s.IdentifyUserAt(userTag, timestamp)
+		p.lastUserTag = userTag
+
+	}
 }
 
 func (p *SessionProxy) ReportCrash(errorName string, reason string, stacktrace string) {

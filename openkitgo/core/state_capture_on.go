@@ -1,7 +1,6 @@
 package core
 
 import (
-	"fmt"
 	"github.com/dlopes7/dynatrace-openkit-go/openkitgo/configuration"
 	"github.com/dlopes7/dynatrace-openkit-go/openkitgo/protocol"
 	"net/http"
@@ -73,7 +72,6 @@ func (s *StateCaptureOn) sendNewSessionRequests(ctx *BeaconSendingContext) proto
 			continue
 		}
 
-		fmt.Println("SENDING NEW SESSION")
 		statusResponse = httpClient.SendNewSessionRequest(ctx)
 		if statusResponse.ResponseCode < http.StatusBadRequest {
 			updatedAttributes := ctx.updateFrom(statusResponse)
@@ -95,7 +93,6 @@ func (s *StateCaptureOn) sendFinishedSessions(ctx *BeaconSendingContext) protoco
 
 	for _, session := range ctx.getAllFinishedAndConfiguredSessions() {
 		if session.isDataSendingAllowed() {
-			fmt.Println("SENDING FINISHED SESSION")
 			statusResponse = session.sendBeacon(ctx)
 			if statusResponse.ResponseCode >= http.StatusBadRequest {
 				if statusResponse.ResponseCode == http.StatusTooManyRequests || session.isEmpty() {

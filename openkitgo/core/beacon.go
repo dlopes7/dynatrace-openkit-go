@@ -525,8 +525,23 @@ func (b *Beacon) addWebRequest(parentActionID int, errorName string, causeName s
 	panic("implement me")
 }
 
-func (b *Beacon) identifyUser(parentActionID int, errorName string, causeName string, causeDescription string, causeStackTrace string, timestamp time.Time) {
-	panic("implement me")
+func (b *Beacon) identifyUser(userTag string, timestamp time.Time) {
+	if !b.isDataCapturingEnabled() {
+		return
+	}
+	var builder strings.Builder
+
+	if userTag != "" {
+		b.buildBasicEventData(&builder, IDENTIFY_USER, userTag)
+	} else {
+		b.buildBasicEventDataWithoutName(&builder, IDENTIFY_USER)
+	}
+
+	b.addKeyValuePair(&builder, BEACON_KEY_PARENT_ACTION_ID, 0)
+	b.addKeyValuePair(&builder, BEACON_KEY_START_SEQUENCE_NUMBER, b.CreateSequenceNumber())
+	b.addKeyValuePair(&builder, BEACON_KEY_TIME_0, timestamp.Sub(b.sessionStartTime).Milliseconds())
+
+	b.addEventData(timestamp, &builder)
 }
 
 func (b *Beacon) initializeServerConfiguration(c *configuration.ServerConfiguration) {

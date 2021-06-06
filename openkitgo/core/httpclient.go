@@ -3,7 +3,6 @@ package core
 import (
 	"bytes"
 	"compress/gzip"
-	"fmt"
 	"github.com/dlopes7/dynatrace-openkit-go/openkitgo/configuration"
 	"github.com/dlopes7/dynatrace-openkit-go/openkitgo/protocol"
 	"github.com/dlopes7/dynatrace-openkit-go/openkitgo/utils"
@@ -146,8 +145,7 @@ func (h *HttpClient) sendRequest(requestType RequestType, url string, clientIPAd
 	var buf bytes.Buffer
 
 	if data != nil {
-		fmt.Println("SENDING THIS BITCH")
-		h.log.WithFields(log.Fields{"data": string(data)}).Info("Body")
+		h.log.WithFields(log.Fields{"data": string(data)}).Debug("Beacon Body")
 		g := gzip.NewWriter(&buf)
 
 		if _, err := g.Write(data); err != nil {

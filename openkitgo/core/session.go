@@ -41,11 +41,15 @@ func (s *Session) EnterActionAt(actionName string, timestamp time.Time) openkitg
 }
 
 func (s *Session) IdentifyUser(userTag string) {
-	panic("implement me")
+	s.IdentifyUserAt(userTag, time.Now())
 }
 
 func (s *Session) IdentifyUserAt(userTag string, timestamp time.Time) {
-	panic("implement me")
+	s.log.WithFields(log.Fields{"session": s, "userTag": userTag, "timestamp": timestamp}).Debug("Session.IdentifyUser()")
+
+	if !s.State.IsFinishingOrFinished() {
+		s.beacon.identifyUser(userTag, timestamp)
+	}
 }
 
 func (s *Session) ReportCrash(errorName string, reason string, stacktrace string) {
