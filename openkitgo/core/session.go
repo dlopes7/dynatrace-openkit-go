@@ -206,3 +206,7 @@ func (s *Session) TraceWebRequestAt(url string, timestamp time.Time) openkitgo.W
 	}
 	return NewNullWebRequestTracer()
 }
+
+func (s *Session) enableCapture() {
+	s.beacon.enableCapture()
+}

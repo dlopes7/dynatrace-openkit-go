@@ -123,7 +123,7 @@ func NewBeacon(
 	ipAddress string,
 
 ) *Beacon {
-	sessionNumber := sessionIDProvider.GetNextSessionID() // TODO fix nil
+	sessionNumber := sessionIDProvider.GetNextSessionID()
 	sessionSequenceNumber := sessionProxy.GetSessionSequenceNumber()
 
 	b := &Beacon{

@@ -112,7 +112,7 @@ func (p *SessionProxy) getChildCount() int {
 func (p *SessionProxy) onChildClosed(child OpenKitObject) {
 	p.removeChildFromList(child)
 	/*
-		TODO
+		TODO sessionWatchdog
 		if (childObject instanceof SessionImpl) {
 			sessionWatchdog.dequeueFromClosing((SessionImpl) childObject);
 		}

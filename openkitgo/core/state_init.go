@@ -51,6 +51,10 @@ func (s *StateInit) execute(ctx *BeaconSendingContext) {
 		ctx.initOk = true
 	}
 
+	if ctx.IsShutdownRequested() {
+		ctx.nextState = s.getShutdownState()
+	}
+
 }
 
 func (s *StateInit) executeStatusRequest(ctx *BeaconSendingContext) protocol.StatusResponse {

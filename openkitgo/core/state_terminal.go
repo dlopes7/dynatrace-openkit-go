@@ -13,3 +13,6 @@ func (s *StateTerminal) execute(ctx *BeaconSendingContext) {
 func (s *StateTerminal) getShutdownState() BeaconState {
 	return s
 }
+func (s *StateTerminal) String() string {
+	return "StateTerminal"
+}

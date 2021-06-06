@@ -53,7 +53,7 @@ func (c *BeaconSendingContext) executeCurrentState() {
 	c.currentState.execute(c)
 
 	if c.nextState != nil && c.nextState != c.currentState {
-		c.log.WithFields(log.Fields{"currentState": c.currentState, "nextState": c.nextState}).Debug("changing state")
+		c.log.WithFields(log.Fields{"currentState": c.currentState, "nextState": c.nextState}).Info("changing state")
 		c.currentState = c.nextState
 	}
 
@@ -119,7 +119,7 @@ func (c *BeaconSendingContext) updateFrom(statusResponse protocol.StatusResponse
 }
 
 func (c *BeaconSendingContext) requestShutDown() {
-	atomic.StoreInt32(&c.shutdown, 0)
+	atomic.StoreInt32(&c.shutdown, 1)
 }
 
 func (c *BeaconSendingContext) WaitForInitTimeout(timeout time.Duration) bool {

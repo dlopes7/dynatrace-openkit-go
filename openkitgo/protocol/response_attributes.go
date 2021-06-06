@@ -2,27 +2,6 @@ package protocol
 
 import "time"
 
-//
-//type ResponseAttributes interface {
-//	GetMaxBeaconSizeInBytes() int
-//	GetMaxSessionDuration() time.Duration
-//	GetMaxEventsPerSession() int
-//	GetSessionTimeout() time.Duration
-//	GetSendInterval() time.Duration
-//	GetVisitStoreVersion() int
-//	Capture() bool
-//	CaptureCrashes() bool
-//	CaptureErrors() bool
-//	GetApplicationId() string
-//	GetMultiplicity() int
-//	GetServerId() int
-//	GetStatus() string
-//	GetTimestamp() time.Time
-//
-//	// TODO boolean isAttributeSet(ResponseAttribute attribute);
-//	// TODO ResponseAttributes merge(ResponseAttributes responseAttributes);
-//}
-
 type ResponseAttributes struct {
 	MaxBeaconSizeInBytes     int
 	MaxSessionDuration       time.Duration
@@ -74,7 +53,6 @@ func UndefinedResponseAttributes() ResponseAttributes {
 
 func (a *ResponseAttributes) Merge(attributes ResponseAttributes) ResponseAttributes {
 
-	// TODO - Apparently only set these if they were not set before?
 	a.ServerID = attributes.ServerID
 	a.MaxBeaconSizeInBytes = attributes.MaxBeaconSizeInBytes
 	a.Capture = attributes.Capture

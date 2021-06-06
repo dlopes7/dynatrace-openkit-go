@@ -43,11 +43,14 @@ func (s StateCaptureOff) execute(ctx *BeaconSendingContext) {
 	statusResponse := sendStatusRequest(ctx, STATUS_REQUEST_RETRIES, INITIAL_RETRY_SLEEP_TIME_MILLISECONDS)
 	s.handleStatusResponse(ctx, statusResponse)
 	ctx.lastStatusCheck = currentTime
+
+	if ctx.IsShutdownRequested() {
+		ctx.nextState = s.getShutdownState()
+	}
 }
 
 func (s StateCaptureOff) getShutdownState() BeaconState {
-	// TODO BeaconSendingFlushSessionsState
-	panic("implement me")
+	return &StateFlush{}
 }
 
 func (s StateCaptureOff) handleStatusResponse(ctx *BeaconSendingContext, response protocol.StatusResponse) {

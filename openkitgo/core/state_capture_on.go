@@ -46,6 +46,9 @@ func (s *StateCaptureOn) execute(ctx *BeaconSendingContext) {
 	}
 
 	s.handleStatusResponse(ctx, lastStatusResponse)
+	if ctx.IsShutdownRequested() {
+		ctx.nextState = s.getShutdownState()
+	}
 }
 
 func (s *StateCaptureOn) terminal() bool {
@@ -53,8 +56,7 @@ func (s *StateCaptureOn) terminal() bool {
 }
 
 func (s *StateCaptureOn) getShutdownState() BeaconState {
-	panic("Implement me")
-	// TODO Flush
+	return &StateFlush{}
 }
 
 func (s *StateCaptureOn) String() string {
