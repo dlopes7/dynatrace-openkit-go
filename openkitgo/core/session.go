@@ -15,14 +15,14 @@ const (
 )
 
 type Session struct {
-	log               *log.Logger
-	parent            OpenKitComposite
-	beacon            *Beacon
-	State             SessionState
-	remainingRequests int
-	splitEndTime      time.Time
-	children          []OpenKitObject
-	mutex             sync.Mutex
+	log                             *log.Logger
+	parent                          OpenKitComposite
+	beacon                          *Beacon
+	State                           *SessionState
+	remainingRequests               int
+	children                        []OpenKitObject
+	mutex                           sync.RWMutex
+	splitByEventsGracePeriodEndTime time.Time
 }
 
 func (s *Session) EnterAction(actionName string) openkitgo.Action {
@@ -96,15 +96,15 @@ func (s *Session) onChildClosed(child OpenKitObject) {
 }
 
 func (s *Session) storeChildInList(child OpenKitObject) {
-	s.mutex.Lock()
-	defer s.mutex.Unlock()
+	s.mutex.RLock()
+	defer s.mutex.RUnlock()
 	s.children = append(s.children, child)
 
 }
 
 func (s *Session) removeChildFromList(child OpenKitObject) bool {
-	s.mutex.Lock()
-	defer s.mutex.Unlock()
+	s.mutex.RLock()
+	defer s.mutex.RUnlock()
 	removed := false
 
 	var keep []OpenKitObject
@@ -209,4 +209,29 @@ func (s *Session) TraceWebRequestAt(url string, timestamp time.Time) openkitgo.W
 
 func (s *Session) enableCapture() {
 	s.beacon.enableCapture()
+}
+
+func (s *Session) getSplitByEventsGracePeriodEndTime() time.Time {
+	return s.splitByEventsGracePeriodEndTime
+}
+
+func (s *Session) setSplitByEventsGracePeriodEndTime(timestamp time.Time) {
+	s.splitByEventsGracePeriodEndTime = timestamp
+}
+
+func (s *Session) tryEnd() bool {
+	if s.State.IsConfiguredAndFinished() {
+		return true
+	}
+	if s.getChildCount() == 0 {
+		s.endWithEvent(false, time.Now())
+		return true
+	}
+	s.State.MarkAsWasTriedForEnding()
+	return false
+
+}
+
+func (s *Session) initializeServerConfiguration(config *configuration.ServerConfiguration) {
+	s.beacon.initializeServerConfiguration(config)
 }

@@ -7,7 +7,7 @@ import (
 
 type SessionIDProvider struct {
 	initialOffset int32
-	mutex         sync.Mutex
+	mutex         sync.RWMutex
 }
 
 func NewSessionIDProvider() *SessionIDProvider {

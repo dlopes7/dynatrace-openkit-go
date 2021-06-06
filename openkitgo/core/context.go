@@ -10,12 +10,12 @@ import (
 )
 
 const (
-	DEFAULT_SLEEP_TIME_MILLISECONDS = 1 * time.Second
+	DEFAULT_SLEEP_TIME = 1 * time.Second
 )
 
 type BeaconSendingContext struct {
 	log                     *log.Logger
-	mutex                   sync.Mutex
+	mutex                   sync.RWMutex
 	serverConfiguration     *configuration.ServerConfiguration
 	lastResponseAttributes  protocol.ResponseAttributes
 	httpClientConfiguration *configuration.HttpClientConfiguration
@@ -68,14 +68,14 @@ func (c *BeaconSendingContext) getHttpClient() HttpClient {
 }
 
 func (c *BeaconSendingContext) GetConfigurationTimestamp() time.Time {
-	c.mutex.Lock()
-	defer c.mutex.Unlock()
+	c.mutex.RLock()
+	defer c.mutex.RUnlock()
 	return c.lastResponseAttributes.Timestamp
 }
 
 func (c *BeaconSendingContext) isCaptureOn() bool {
-	c.mutex.Lock()
-	defer c.mutex.Unlock()
+	c.mutex.RLock()
+	defer c.mutex.RUnlock()
 	return c.serverConfiguration.Capture
 }
 
@@ -158,14 +158,14 @@ func (c *BeaconSendingContext) IsInTerminalState() bool {
 }
 
 func (c *BeaconSendingContext) GetSendInterval() time.Duration {
-	c.mutex.Lock()
-	defer c.mutex.Unlock()
+	c.mutex.RLock()
+	defer c.mutex.RUnlock()
 	return c.serverConfiguration.SendInterval
 }
 
 func (c *BeaconSendingContext) GetLastServerConfiguration() *configuration.ServerConfiguration {
-	c.mutex.Lock()
-	defer c.mutex.Unlock()
+	c.mutex.RLock()
+	defer c.mutex.RUnlock()
 	return c.serverConfiguration
 }
 
@@ -190,20 +190,23 @@ func (c *BeaconSendingContext) clearAllSessionData() {
 }
 
 func (c *BeaconSendingContext) getAllNotConfiguredSessions() []*Session {
-	c.mutex.Lock()
-	c.mutex.Unlock()
+	c.mutex.RLock()
+	c.mutex.RUnlock()
 	var filtered []*Session
 
 	for _, session := range c.sessions {
-		if !session.State.IsConfigured() {
-			filtered = append(filtered, session)
+		if session != nil && session.State != nil {
+			if !session.State.IsConfigured() {
+				filtered = append(filtered, session)
+			}
 		}
 	}
 	return filtered
 }
 
 func (c *BeaconSendingContext) getAllOpenAndConfiguredSessions() []*Session {
-
+	c.mutex.RLock()
+	c.mutex.RUnlock()
 	var filtered []*Session
 
 	for _, session := range c.sessions {
@@ -215,6 +218,8 @@ func (c *BeaconSendingContext) getAllOpenAndConfiguredSessions() []*Session {
 }
 
 func (c *BeaconSendingContext) getAllFinishedAndConfiguredSessions() []*Session {
+	c.mutex.RLock()
+	c.mutex.RUnlock()
 	var filtered []*Session
 
 	for _, session := range c.sessions {
@@ -230,10 +235,14 @@ func (c *BeaconSendingContext) GetCurrentServerId() int {
 }
 
 func (c *BeaconSendingContext) AddSession(session *Session) {
+	c.mutex.Lock()
+	c.mutex.Unlock()
 	c.sessions = append(c.sessions, session)
 }
 
 func (c *BeaconSendingContext) RemoveSession(session *Session) {
+	c.mutex.Lock()
+	c.mutex.Unlock()
 	var keep []*Session
 
 	for _, s := range c.sessions {

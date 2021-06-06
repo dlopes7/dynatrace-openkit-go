@@ -237,8 +237,6 @@ func (b *Beacon) GetVisitStoreVersion() int {
 
 func (b *Beacon) EndSessionAt(timestamp time.Time) {
 
-	// TODO check privacyConfiguration
-
 	if !b.isDataCapturingEnabled() {
 		return
 	}

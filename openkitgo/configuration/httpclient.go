@@ -7,6 +7,4 @@ type HttpClientConfiguration struct {
 	ServerID      int
 	ApplicationID string
 	Transport     *http.Transport
-	// TODO httpRequestInterceptor
-	// TODO httpResponseInterceptor
 }

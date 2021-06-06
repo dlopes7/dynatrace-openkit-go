@@ -9,7 +9,7 @@ import (
 
 type BeaconCache struct {
 	log              *log.Logger
-	mutex            sync.Mutex
+	mutex            sync.RWMutex
 	beacons          map[BeaconKey]*BeaconCacheEntry
 	cacheSizeInBytes int64 // Atomic
 	observers        []*chan bool
@@ -54,13 +54,11 @@ func (c *BeaconCache) AddActionData(key BeaconKey, timestamp time.Time, data str
 }
 
 func (c *BeaconCache) getCachedEntryOrInsert(key BeaconKey) *BeaconCacheEntry {
-
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
 	entry := c.getCachedEntry(key)
 
 	if entry == nil {
-		c.mutex.Lock()
-		defer c.mutex.Unlock()
-
 		entry = &BeaconCacheEntry{}
 		c.beacons[key] = entry
 	} else {
@@ -70,8 +68,6 @@ func (c *BeaconCache) getCachedEntryOrInsert(key BeaconKey) *BeaconCacheEntry {
 }
 
 func (c *BeaconCache) getCachedEntry(key BeaconKey) *BeaconCacheEntry {
-	c.mutex.Lock()
-	defer c.mutex.Unlock()
 	return c.beacons[key]
 
 }
@@ -103,7 +99,9 @@ func (c *BeaconCache) DeleteCacheEntry(key BeaconKey) {
 }
 
 func (c *BeaconCache) PrepareDataForSending(key BeaconKey) {
+	c.mutex.Lock()
 	entry := c.getCachedEntry(key)
+	c.mutex.Unlock()
 	if entry == nil {
 		return
 	}
@@ -120,7 +118,9 @@ func (c *BeaconCache) PrepareDataForSending(key BeaconKey) {
 }
 
 func (c *BeaconCache) HasDataForSending(key BeaconKey) bool {
+	c.mutex.Lock()
 	entry := c.getCachedEntry(key)
+	c.mutex.Unlock()
 	if entry == nil {
 		return false
 	}
@@ -130,7 +130,9 @@ func (c *BeaconCache) HasDataForSending(key BeaconKey) bool {
 }
 
 func (c *BeaconCache) GetNextBeaconChunk(key BeaconKey, chunkPrefix string, maxSize int, delimiter rune) string {
+	c.mutex.Lock()
 	entry := c.getCachedEntry(key)
+	c.mutex.Unlock()
 	if entry == nil {
 		return ""
 	}
@@ -138,14 +140,20 @@ func (c *BeaconCache) GetNextBeaconChunk(key BeaconKey, chunkPrefix string, maxS
 }
 
 func (c *BeaconCache) RemoveChunkedData(key BeaconKey) {
+	c.mutex.Lock()
 	entry := c.getCachedEntry(key)
+	c.mutex.Unlock()
 	if entry == nil {
 		return
 	}
+	entry.mutex.Lock()
 	entry.removeDataMarkedForSending()
+	entry.mutex.Unlock()
 }
 func (c *BeaconCache) ResetChunkedData(key BeaconKey) {
+	c.mutex.Lock()
 	entry := c.getCachedEntry(key)
+	c.mutex.Unlock()
 	if entry == nil {
 		return
 	}
@@ -177,7 +185,9 @@ func (c *BeaconCache) GetBeaconKeys() []BeaconKey {
 }
 
 func (c *BeaconCache) evictRecordsByAge(key BeaconKey, timestamp time.Time) int {
+	c.mutex.Lock()
 	entry := c.getCachedEntry(key)
+	c.mutex.Unlock()
 	if entry == nil {
 		return 0
 	}
@@ -194,7 +204,9 @@ func (c *BeaconCache) evictRecordsByAge(key BeaconKey, timestamp time.Time) int 
 }
 
 func (c *BeaconCache) evictRecordsByNumber(key BeaconKey, numRecords int) int {
+	c.mutex.Lock()
 	entry := c.getCachedEntry(key)
+	c.mutex.Unlock()
 	if entry == nil {
 		return 0
 	}
@@ -215,7 +227,9 @@ func (c *BeaconCache) getNumBytesInCache() int64 {
 }
 
 func (c *BeaconCache) IsEmpty(key BeaconKey) bool {
+	c.mutex.Lock()
 	entry := c.getCachedEntry(key)
+	c.mutex.Unlock()
 	if entry == nil {
 		return true
 	}

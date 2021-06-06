@@ -10,7 +10,7 @@ type BeaconConfiguration struct {
 	serverConfigurationSet     bool
 	serverConfigUpdateCallback func(configuration *ServerConfiguration)
 
-	mutex sync.Mutex
+	mutex sync.RWMutex
 }
 
 func NewBeaconConfiguration(
@@ -19,9 +19,9 @@ func NewBeaconConfiguration(
 	serverID int,
 ) *BeaconConfiguration {
 
-	// TODO create from config
 	h := &HttpClientConfiguration{
-		ServerID: serverID,
+		ServerID:  serverID,
+		Transport: openKitConfiguration.Transport,
 	}
 	return &BeaconConfiguration{
 		OpenKitConfiguration:    openKitConfiguration,
@@ -31,8 +31,8 @@ func NewBeaconConfiguration(
 }
 
 func (c *BeaconConfiguration) IsServerConfigurationSet() bool {
-	c.mutex.Lock()
-	defer c.mutex.Unlock()
+	c.mutex.RLock()
+	defer c.mutex.RUnlock()
 	return c.serverConfigurationSet
 }
 
@@ -49,8 +49,8 @@ func (c *BeaconConfiguration) notifyServerConfigurationUpdate(configuration *Ser
 }
 
 func (c *BeaconConfiguration) GetServerConfiguration() *ServerConfiguration {
-	c.mutex.Lock()
-	defer c.mutex.Unlock()
+	c.mutex.RLock()
+	defer c.mutex.RUnlock()
 	if c.ServerConfiguration == nil {
 		return DefaultServerConfiguration()
 

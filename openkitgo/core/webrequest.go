@@ -15,7 +15,7 @@ const (
 type WebRequestTracer struct {
 	log             *log.Logger
 	parent          OpenKitComposite
-	mutex           sync.Mutex
+	mutex           sync.RWMutex
 	tag             string
 	beacon          *Beacon
 	parentActionID  int

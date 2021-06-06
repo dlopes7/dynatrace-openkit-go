@@ -20,8 +20,8 @@ type OpenKit struct {
 	beaconCacheEvictor   *caching.BeaconCacheEvictor
 	beaconSender         *BeaconSender
 	isShutDown           bool
-	mutex                sync.Mutex
-	// TODO sessionWatchdog
+	mutex                sync.RWMutex
+	sessionWatchdog      *SessionWatchdog
 
 	children []OpenKitObject
 }
@@ -43,9 +43,9 @@ func (o *OpenKit) CreateSessionAtWithDeviceID(clientIPAddress string, timestamp 
 			o.log,
 			o,
 			o.beaconSender,
+			o.sessionWatchdog,
 			o,
 			clientIPAddress,
-			// TODO o.sessionWatchdog
 			timestamp,
 		)
 
@@ -84,7 +84,7 @@ func NewOpenKit(builder *OpenKitBuilder) openkitgo.OpenKit {
 		Manufacturer:                builder.manufacturer,
 		ModelID:                     builder.modelID,
 		DefaultServerID:             DEFAULT_SERVER_ID,
-		Transport:                   http.Transport{},
+		Transport:                   &http.Transport{},
 	}
 
 	beaconCache := caching.NewBeaconCache(builder.log)
@@ -102,7 +102,7 @@ func NewOpenKit(builder *OpenKitBuilder) openkitgo.OpenKit {
 	}
 
 	beaconSender := NewBeaconSender(builder.log, httpClientConfig)
-	// TODO sessionWatchdog
+	sessionWatchdog := NewSessionWatchdog(builder.log, NewSessionWatchdogContext())
 
 	ok := &OpenKit{
 		log:                  builder.log,
@@ -111,7 +111,7 @@ func NewOpenKit(builder *OpenKitBuilder) openkitgo.OpenKit {
 		beaconCache:          beaconCache,
 		beaconCacheEvictor:   beaconCacheEvictor,
 		beaconSender:         beaconSender,
-		// TODO sessionWatchdog
+		sessionWatchdog:      sessionWatchdog,
 	}
 
 	return ok
@@ -120,7 +120,7 @@ func NewOpenKit(builder *OpenKitBuilder) openkitgo.OpenKit {
 func (o *OpenKit) initialize() {
 
 	o.beaconCacheEvictor.Start()
-	// TODO sessionWatchdog.Start()
+	o.sessionWatchdog.Initialize()
 	o.beaconSender.Initialize()
 
 }
@@ -159,6 +159,7 @@ func (o *OpenKit) WaitForInitCompletionTimeout(duration time.Duration) bool {
 func (o *OpenKit) Shutdown() {
 	o.log.Debug("OpenKit.shutdown()")
 	o.mutex.Lock()
+	defer o.mutex.Unlock()
 	if o.isShutDown {
 		return
 	}
@@ -169,7 +170,7 @@ func (o *OpenKit) Shutdown() {
 	}
 
 	o.beaconCacheEvictor.Stop()
-	// TODO  o.sessionWatchdog.Shutdown();
+	o.sessionWatchdog.Shutdown()
 	o.beaconSender.Shutdown()
 
 }

@@ -12,7 +12,7 @@ type Action struct {
 	parent          OpenKitComposite
 	parentAction    openkitgo.Action
 	parentActionID  int
-	mutex           sync.Mutex
+	mutex           sync.RWMutex
 	id              int32
 	name            string
 	startTime       time.Time
@@ -183,8 +183,8 @@ func (a *Action) doLeaveAction(discardData bool, timestamp time.Time) openkitgo.
 }
 
 func (a *Action) GetDuration() time.Duration {
-	a.mutex.Lock()
-	defer a.mutex.Unlock()
+	a.mutex.RLock()
+	defer a.mutex.RUnlock()
 
 	if a.actionLeft {
 		return a.endTime.Sub(a.startTime)

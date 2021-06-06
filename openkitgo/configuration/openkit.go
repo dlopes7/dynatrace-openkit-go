@@ -28,5 +28,5 @@ type OpenKitConfiguration struct {
 	Manufacturer                string
 	ModelID                     string
 	DefaultServerID             int
-	Transport                   http.Transport
+	Transport                   *http.Transport
 }

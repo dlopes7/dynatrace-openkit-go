@@ -48,9 +48,6 @@ type HttpClient struct {
 	transport *http.Transport
 
 	requestTypes []string
-	// TODO private final HttpRequestInterceptor httpRequestInterceptor;
-	// TODO private final HttpResponseInterceptor httpResponseInterceptor;
-
 }
 
 func NewHttpClient(log *log.Logger, config *configuration.HttpClientConfiguration) HttpClient {
@@ -174,6 +171,10 @@ func (h *HttpClient) sendRequest(requestType RequestType, url string, clientIPAd
 		return nil, err
 	}
 	defer resp.Body.Close()
+
+	if resp.StatusCode >= http.StatusBadRequest {
+		h.log.WithFields(log.Fields{"response": resp.Status}).Warning("Bad response from OpenKit")
+	}
 
 	var bodyString string
 	if resp.StatusCode == http.StatusOK {

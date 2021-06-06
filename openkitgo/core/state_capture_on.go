@@ -15,7 +15,7 @@ func NewStateCaptureOn() *StateCaptureOn {
 }
 
 func (s *StateCaptureOn) execute(ctx *BeaconSendingContext) {
-	time.Sleep(DEFAULT_SLEEP_TIME_MILLISECONDS)
+	time.Sleep(DEFAULT_SLEEP_TIME)
 
 	// send new session request for all sessions that are new
 	newSessionsResponse := s.sendNewSessionRequests(ctx)

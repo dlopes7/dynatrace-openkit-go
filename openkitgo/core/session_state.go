@@ -7,11 +7,11 @@ type SessionState struct {
 	finishing      bool
 	finished       bool
 	triedForEnding bool
-	mutex          sync.Mutex
+	mutex          sync.RWMutex
 }
 
-func NewSessionState(session *Session) SessionState {
-	return SessionState{
+func NewSessionState(session *Session) *SessionState {
+	return &SessionState{
 		session: session,
 	}
 }
@@ -22,14 +22,14 @@ func (s *SessionState) IsConfigured() bool {
 }
 
 func (s *SessionState) IsConfiguredAndFinished() bool {
-	s.mutex.Lock()
-	defer s.mutex.Unlock()
+	s.mutex.RLock()
+	defer s.mutex.RUnlock()
 	return s.IsConfigured() && s.finished
 }
 
 func (s *SessionState) IsConfiguredAndOpen() bool {
-	s.mutex.Lock()
-	defer s.mutex.Unlock()
+	s.mutex.RLock()
+	defer s.mutex.RUnlock()
 	return s.IsConfigured() && !s.finished
 }
 
@@ -38,8 +38,8 @@ func (s *SessionState) IsFinishingOrFinished() bool {
 }
 
 func (s *SessionState) MarkAsIsFinishing() bool {
-	s.mutex.Lock()
-	defer s.mutex.Unlock()
+	s.mutex.RLock()
+	defer s.mutex.RUnlock()
 	if s.IsFinishingOrFinished() {
 		return false
 	}
@@ -48,25 +48,25 @@ func (s *SessionState) MarkAsIsFinishing() bool {
 }
 
 func (s *SessionState) MarkAsFinished() {
-	s.mutex.Lock()
-	defer s.mutex.Unlock()
+	s.mutex.RLock()
+	defer s.mutex.RUnlock()
 	s.finished = true
 }
 
 func (s *SessionState) MarkAsWasTriedForEnding() {
-	s.mutex.Lock()
-	defer s.mutex.Unlock()
+	s.mutex.RLock()
+	defer s.mutex.RUnlock()
 	s.triedForEnding = true
 }
 
 func (s *SessionState) WasTriedForEnding() bool {
-	s.mutex.Lock()
-	defer s.mutex.Unlock()
+	s.mutex.RLock()
+	defer s.mutex.RUnlock()
 	return s.triedForEnding
 }
 
 func (s *SessionState) IsFinished() bool {
-	s.mutex.Lock()
-	defer s.mutex.Unlock()
+	s.mutex.RLock()
+	defer s.mutex.RUnlock()
 	return s.finished
 }

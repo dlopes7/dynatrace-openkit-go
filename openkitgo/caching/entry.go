@@ -10,7 +10,7 @@ import (
 type BeaconCacheEntry struct {
 	eventData  []*BeaconCacheRecord
 	actionData []*BeaconCacheRecord
-	mutex      sync.Mutex
+	mutex      sync.RWMutex
 
 	eventDataBeingSent  []*BeaconCacheRecord
 	actionDataBeingSent []*BeaconCacheRecord

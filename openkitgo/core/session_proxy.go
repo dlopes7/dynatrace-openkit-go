@@ -23,13 +23,13 @@ type SessionProxy struct {
 	openKitConfiguration *configuration.OpenKitConfiguration
 	privacyConfiguration *configuration.PrivacyConfiguration
 	beaconSender         *BeaconSender
-	// TODO SessionWatchdog
-	currentSession      *Session
-	topLevelActionCount int
-	lastInteractionTime time.Time
-	serverConfiguration *configuration.ServerConfiguration
-	isFinished          bool
-	lastUserTag         string
+	sessionWatchdog      *SessionWatchdog
+	currentSession       *Session
+	topLevelActionCount  int
+	lastInteractionTime  time.Time
+	serverConfiguration  *configuration.ServerConfiguration
+	isFinished           bool
+	lastUserTag          string
 
 	// From java SessionCreatorImpl
 	beaconCache           *caching.BeaconCache
@@ -38,14 +38,14 @@ type SessionProxy struct {
 	sessionSequenceNumber int32
 
 	children []OpenKitObject
-	mutex    sync.Mutex
+	mutex    sync.RWMutex
 }
 
 func NewSessionProxy(
 	log *log.Logger,
 	parent OpenKitComposite,
 	beaconSender *BeaconSender,
-	// TODO sessionWatchdog
+	sessionWatchdog *SessionWatchdog,
 	input *OpenKit,
 	clientIPAddress string,
 	timestamp time.Time,
@@ -68,6 +68,7 @@ func NewSessionProxy(
 		lastInteractionTime: time.Time{},
 		isFinished:          false,
 		lastUserTag:         "",
+		sessionWatchdog:     sessionWatchdog,
 
 		children: []OpenKitObject{},
 	}
@@ -111,12 +112,10 @@ func (p *SessionProxy) getChildCount() int {
 
 func (p *SessionProxy) onChildClosed(child OpenKitObject) {
 	p.removeChildFromList(child)
-	/*
-		TODO sessionWatchdog
-		if (childObject instanceof SessionImpl) {
-			sessionWatchdog.dequeueFromClosing((SessionImpl) childObject);
-		}
-	*/
+	switch child.(type) {
+	case *Session:
+		p.sessionWatchdog.DequeueFromClosing(child.(*Session))
+	}
 
 }
 
@@ -193,7 +192,7 @@ func (p *SessionProxy) EndAt(timestamp time.Time) {
 
 	p.closeChildObjects(timestamp)
 	p.parent.onChildClosed(p)
-	// TODO sessionWatchdog.removeFromSplitByTimeout(this);
+	p.sessionWatchdog.RemoveFromSplitByTimeout(p)
 
 }
 
@@ -238,11 +237,11 @@ func (p *SessionProxy) createAndAssignCurrentSession(initialServerConfig *config
 	p.topLevelActionCount = 0
 
 	if initialServerConfig != nil {
-		// TODO session.(*Session).initializeServerConfiguration(initialServerConfig)
+		session.(*Session).initializeServerConfiguration(initialServerConfig)
 	}
 
 	if updatedServerConfig != nil {
-		// TODO session.(*Session).updateServerConfiguration(updatedServerConfig)
+		session.(*Session).updateServerConfiguration(updatedServerConfig)
 	}
 
 	p.mutex.Lock()
@@ -308,7 +307,7 @@ func (p *SessionProxy) closeOrEnqueueCurrentSessionForClosing() {
 		closeGracePeriod = p.serverConfiguration.SendInterval
 	}
 
-	// TODO         sessionWatchdog.closeOrEnqueueForClosing(currentSession, closeGracePeriodInMillis);
+	p.sessionWatchdog.CloseOrEnqueueForClosing(p.currentSession, closeGracePeriod)
 }
 
 func (p *SessionProxy) createSplitSessionAndMakeCurrent(serverConfiguration *configuration.ServerConfiguration, timestamp time.Time) {
@@ -324,7 +323,7 @@ func (p *SessionProxy) onServerConfigurationUpdate(serverConfiguration *configur
 	}
 
 	if p.serverConfiguration.SessionSplitByIdleTimeout || p.serverConfiguration.SessionSplitBySessionDuration {
-		// TODO sessionWatchdog.addToSplitByTimeout(this);
+		p.sessionWatchdog.AddToSplitByTimeout(p)
 	}
 
 }
@@ -358,4 +357,45 @@ func (p *SessionProxy) TraceWebRequestAt(url string, timestamp time.Time) openki
 	}
 
 	return NewNullWebRequestTracer()
+}
+
+func (p *SessionProxy) splitSessionByTime() time.Time {
+	if p.isFinished {
+		return time.Time{}
+	}
+
+	nextSplitTime := p.calculateNextSplitTime()
+	now := time.Now()
+
+	if nextSplitTime.IsZero() || now.Before(nextSplitTime) {
+		return nextSplitTime
+	}
+
+	p.splitAndCreateNewInitialSession()
+	return p.calculateNextSplitTime()
+}
+
+func (p *SessionProxy) calculateNextSplitTime() time.Time {
+	if p.serverConfiguration == nil {
+		return time.Time{}
+	}
+
+	splitByIdleTimeout := p.serverConfiguration.SessionSplitByIdleTimeout
+	splitBySessionDuration := p.serverConfiguration.SessionSplitBySessionDuration
+
+	idleTimeOut := p.lastInteractionTime.Add(p.serverConfiguration.SessionTimeout)
+	sessionMaxTime := p.currentSession.beacon.sessionStartTime.Add(p.serverConfiguration.MaxSessionDuration)
+
+	if splitByIdleTimeout && splitBySessionDuration {
+		if idleTimeOut.Before(sessionMaxTime) {
+			return idleTimeOut
+		}
+		return sessionMaxTime
+	} else if splitByIdleTimeout {
+		return idleTimeOut
+	} else if splitBySessionDuration {
+		return sessionMaxTime
+	}
+
+	return time.Time{}
 }
