@@ -6,7 +6,7 @@ It is **not** officially supported by Dynatrace.
 
 ## Install
 
-`go get github.com/dlopes7/dynatrace-openkit-go`
+`go get github.com/dlopes7/dynatrace-openkit-go@v1.1.1`
 
 ## Sample
 
