@@ -14,7 +14,7 @@ const (
 	DEFAULT_SERVER_ID           = 1
 	OPENKIT_TYPE                = "DynatraceOpenKitGo"
 	WEBREQUEST_TAG_HEADER       = "X-dynaTrace"
-	DEFAULT_APPLICATION_VERSION = "1.1.4"
+	DEFAULT_APPLICATION_VERSION = "1.1.5"
 	DEFAULT_OPERATING_SYSTEM    = "OpenKit " + DEFAULT_APPLICATION_VERSION
 	DEFAULT_MANUFACTURER        = "Dynatrace"
 	DEFAULT_MODEL_ID            = "OpenKitDevice"
