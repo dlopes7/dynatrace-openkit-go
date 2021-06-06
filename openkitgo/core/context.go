@@ -190,7 +190,8 @@ func (c *BeaconSendingContext) clearAllSessionData() {
 }
 
 func (c *BeaconSendingContext) getAllNotConfiguredSessions() []*Session {
-
+	c.mutex.Lock()
+	c.mutex.Unlock()
 	var filtered []*Session
 
 	for _, session := range c.sessions {

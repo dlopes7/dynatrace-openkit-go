@@ -2,6 +2,7 @@ package core
 
 import (
 	"fmt"
+	"github.com/dlopes7/dynatrace-openkit-go/openkitgo"
 	"github.com/dlopes7/dynatrace-openkit-go/openkitgo/caching"
 	"github.com/dlopes7/dynatrace-openkit-go/openkitgo/configuration"
 	"github.com/dlopes7/dynatrace-openkit-go/openkitgo/protocol"
@@ -230,7 +231,7 @@ func (b *Beacon) GetSessionNumber() int {
 }
 
 func (b *Beacon) GetVisitStoreVersion() int {
-	return b.configuration.ServerConfiguration.VisitStoreVersion
+	return b.configuration.GetServerConfiguration().VisitStoreVersion
 
 }
 
@@ -386,9 +387,13 @@ func (b *Beacon) addKeyValuePairIfNotNull(builder *strings.Builder, key string, 
 
 func (b *Beacon) addKeyValuePairIfNotNegative(builder *strings.Builder, key string, value interface{}) {
 
-	if value.(int64) > 0 {
-		b.addKeyValuePair(builder, key, value)
+	switch v := value.(type) {
+	case int:
+		if v > 0 {
+			b.addKeyValuePair(builder, key, value)
+		}
 	}
+
 }
 
 func (b *Beacon) IsEmpty() bool {
@@ -521,8 +526,27 @@ func (b *Beacon) reportError(parentActionID int, errorName string, causeName str
 
 	b.addEventData(timestamp, &builder)
 }
-func (b *Beacon) addWebRequest(parentActionID int, errorName string, causeName string, causeDescription string, causeStackTrace string, timestamp time.Time) {
-	panic("implement me")
+func (b *Beacon) addWebRequest(parentActionID int, tracer openkitgo.WebRequestTracer) {
+
+	if !b.isErrorCapturingEnabled() {
+		return
+	}
+
+	var builder strings.Builder
+
+	b.buildBasicEventData(&builder, WEB_REQUEST, tracer.(*WebRequestTracer).url)
+
+	b.addKeyValuePair(&builder, BEACON_KEY_PARENT_ACTION_ID, parentActionID)
+	b.addKeyValuePair(&builder, BEACON_KEY_START_SEQUENCE_NUMBER, tracer.(*WebRequestTracer).startSequenceNo)
+	b.addKeyValuePair(&builder, BEACON_KEY_TIME_0, tracer.(*WebRequestTracer).startTime.Sub(b.sessionStartTime).Milliseconds())
+	b.addKeyValuePair(&builder, BEACON_KEY_END_SEQUENCE_NUMBER, tracer.(*WebRequestTracer).endSequenceNo)
+	b.addKeyValuePair(&builder, BEACON_KEY_TIME_1, tracer.(*WebRequestTracer).endTime.Sub(tracer.(*WebRequestTracer).startTime).Milliseconds())
+
+	b.addKeyValuePairIfNotNegative(&builder, BEACON_KEY_WEBREQUEST_BYTES_SENT, tracer.(*WebRequestTracer).bytesSent)
+	b.addKeyValuePairIfNotNegative(&builder, BEACON_KEY_WEBREQUEST_BYTES_RECEIVED, tracer.(*WebRequestTracer).bytesReceived)
+	b.addKeyValuePairIfNotNegative(&builder, BEACON_KEY_WEBREQUEST_RESPONSECODE, tracer.(*WebRequestTracer).responseCode)
+
+	b.addEventData(tracer.(*WebRequestTracer).startTime, &builder)
 }
 
 func (b *Beacon) identifyUser(userTag string, timestamp time.Time) {

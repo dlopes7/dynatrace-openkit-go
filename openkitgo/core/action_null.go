@@ -7,6 +7,14 @@ import (
 
 type NullAction struct{}
 
+func (a NullAction) TraceWebRequest(url string) openkitgo.WebRequestTracer {
+	return NewNullWebRequestTracer()
+}
+
+func (a NullAction) TraceWebRequestAt(url string, timestamp time.Time) openkitgo.WebRequestTracer {
+	return NewNullWebRequestTracer()
+}
+
 func NewNullAction() NullAction {
 	return NullAction{}
 }

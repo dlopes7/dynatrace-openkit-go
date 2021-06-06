@@ -192,3 +192,17 @@ func (s *Session) isEmpty() bool {
 	return s.beacon.IsEmpty()
 
 }
+
+func (s *Session) TraceWebRequest(url string) openkitgo.WebRequestTracer {
+	return s.TraceWebRequestAt(url, time.Now())
+}
+
+func (s *Session) TraceWebRequestAt(url string, timestamp time.Time) openkitgo.WebRequestTracer {
+	s.log.WithFields(log.Fields{"session": s, "url": url, "timestamp": timestamp}).Debug("Session.TraceWebRequest()")
+	if !s.State.IsFinishingOrFinished() {
+		tracer := NewWebRequestTracer(s.log, s, url, s.beacon, timestamp)
+		s.storeChildInList(tracer)
+		return tracer
+	}
+	return NewNullWebRequestTracer()
+}

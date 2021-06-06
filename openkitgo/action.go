@@ -12,8 +12,8 @@ type Action interface {
 	ReportError(errorName string, causeName string, causeDescription string, causeStack string) Action
 	ReportErrorAt(errorName string, causeName string, causeDescription string, causeStack string, timestamp time.Time) Action
 
-	// TODO TraceWebRequest()
-	// TODO TraceWebRequestAt()
+	TraceWebRequest(url string) WebRequestTracer
+	TraceWebRequestAt(url string, timestamp time.Time) WebRequestTracer
 
 	LeaveAction() Action
 	LeaveActionAt(timestamp time.Time) Action

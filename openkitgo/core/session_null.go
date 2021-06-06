@@ -8,6 +8,14 @@ import (
 type NullSession struct {
 }
 
+func (n NullSession) TraceWebRequest(url string) openkitgo.WebRequestTracer {
+	return NewNullWebRequestTracer()
+}
+
+func (n NullSession) TraceWebRequestAt(url string, timestamp time.Time) openkitgo.WebRequestTracer {
+	return NewNullWebRequestTracer()
+}
+
 func (n NullSession) storeChildInList(child OpenKitObject) {
 
 }

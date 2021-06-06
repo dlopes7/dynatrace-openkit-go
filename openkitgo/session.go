@@ -1,6 +1,8 @@
 package openkitgo
 
-import "time"
+import (
+	"time"
+)
 
 type Session interface {
 	EnterAction(actionName string) Action
@@ -12,8 +14,8 @@ type Session interface {
 	ReportCrash(errorName string, reason string, stacktrace string)
 	ReportCrashAt(errorName string, reason string, stacktrace string, timestamp time.Time)
 
-	// TODO TraceWebRequest()
-	// TODO TraceWebRequestAt()
+	TraceWebRequest(url string) WebRequestTracer
+	TraceWebRequestAt(url string, timestamp time.Time) WebRequestTracer
 
 	End()
 	EndAt(timestamp time.Time)

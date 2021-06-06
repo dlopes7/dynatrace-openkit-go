@@ -343,3 +343,19 @@ func (p *SessionProxy) reTagCurrentSession() {
 	}
 
 }
+
+func (p *SessionProxy) TraceWebRequest(url string) openkitgo.WebRequestTracer {
+	return p.TraceWebRequestAt(url, time.Now())
+}
+
+func (p *SessionProxy) TraceWebRequestAt(url string, timestamp time.Time) openkitgo.WebRequestTracer {
+	p.log.WithFields(log.Fields{"url": url, "timestamp": timestamp}).Debug("SessionProxy.TraceWebRequest()")
+
+	if !p.isFinished {
+		s := p.getOrSplitCurrentSessionByEvents(timestamp)
+		p.topLevelActionCount++
+		return s.TraceWebRequestAt(url, timestamp)
+	}
+
+	return NewNullWebRequestTracer()
+}

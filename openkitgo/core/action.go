@@ -191,3 +191,18 @@ func (a *Action) GetDuration() time.Duration {
 	}
 	return time.Now().Sub(a.startTime)
 }
+
+func (a *Action) TraceWebRequest(url string) openkitgo.WebRequestTracer {
+	return a.TraceWebRequestAt(url, time.Now())
+}
+
+func (a *Action) TraceWebRequestAt(url string, timestamp time.Time) openkitgo.WebRequestTracer {
+	a.log.WithFields(log.Fields{"actionName": a.name, "url": url, "timestamp": timestamp}).Debug("Action.TraceWebRequest()")
+
+	if !a.actionLeft {
+		t := NewWebRequestTracer(a.log, a, url, a.beacon, timestamp)
+		a.storeChildInList(t)
+		return t
+	}
+	return NewNullWebRequestTracer()
+}
