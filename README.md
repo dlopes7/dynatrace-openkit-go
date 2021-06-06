@@ -4,6 +4,10 @@ This is a hobbyist implementation of the [Dynatrace Openkit](https://www.dynatra
 
 It is **not** officially supported by Dynatrace.
 
+## Install
+
+`go get github.com/dlopes7/dynatrace-openkit-go`
+
 ## Sample
 
 ```go
