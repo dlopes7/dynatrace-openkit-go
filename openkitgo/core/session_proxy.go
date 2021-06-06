@@ -134,8 +134,6 @@ func (p *SessionProxy) EnterActionAt(actionName string, timestamp time.Time) int
 	}
 	p.log.WithFields(log.Fields{"actionName": actionName}).Debug("SessionProxy.EnterAction()")
 
-	p.mutex.Lock()
-	defer p.mutex.Unlock()
 	if !p.isFinished {
 		session := p.getOrSplitCurrentSessionByEvents(timestamp)
 		p.topLevelActionCount++

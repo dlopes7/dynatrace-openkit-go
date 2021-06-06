@@ -14,9 +14,6 @@ const (
 type BeaconSender struct {
 	log     *log.Logger
 	context *BeaconSendingContext
-
-	// Used to communicate with the sender goroutine
-	channel *chan bool
 }
 
 func NewBeaconSender(log *log.Logger, httpClientConfig *configuration.HttpClientConfiguration) *BeaconSender {
@@ -28,9 +25,7 @@ func NewBeaconSender(log *log.Logger, httpClientConfig *configuration.HttpClient
 }
 
 // BeaconSenderRoutine contains the goroutine that runs until a shutdown is requested
-func BeaconSenderRoutine(log *log.Logger, ctx *BeaconSendingContext) *chan bool {
-
-	stop := make(chan bool)
+func BeaconSenderRoutine(log *log.Logger, ctx *BeaconSendingContext) {
 
 	go func() {
 		log.Debug("BeaconSenderRoutine.start()")
@@ -39,12 +34,10 @@ func BeaconSenderRoutine(log *log.Logger, ctx *BeaconSendingContext) *chan bool 
 		}
 		log.Debug("BeaconSenderRoutine.stop()")
 	}()
-
-	return &stop
 }
 
 func (s *BeaconSender) Initialize() {
-	s.channel = BeaconSenderRoutine(s.log, s.context)
+	BeaconSenderRoutine(s.log, s.context)
 }
 
 func (s *BeaconSender) WaitForInit() bool {
@@ -61,7 +54,6 @@ func (s *BeaconSender) IsInitialized() bool {
 
 func (s *BeaconSender) Shutdown() {
 	s.context.requestShutDown()
-	*s.channel <- true
 }
 
 func (s *BeaconSender) GetLastServerConfiguration() *configuration.ServerConfiguration {
