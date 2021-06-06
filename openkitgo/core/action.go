@@ -206,3 +206,18 @@ func (a *Action) TraceWebRequestAt(url string, timestamp time.Time) interfaces.W
 	}
 	return NewNullWebRequestTracer()
 }
+
+func (a *Action) EnterAction(actionName string) interfaces.Action {
+	return a.EnterActionAt(actionName, time.Now())
+}
+
+func (a *Action) EnterActionAt(actionName string, timestamp time.Time) interfaces.Action {
+	a.log.WithFields(log.Fields{"actionName": a.name, "child": actionName, "timestamp": timestamp}).Debug("Action.EnterAction()")
+
+	if !a.actionLeft {
+		child := NewAction(a.log, a, a, actionName, a.beacon, timestamp)
+		a.storeChildInList(child)
+		return child
+	}
+	return NewNullAction()
+}

@@ -18,6 +18,9 @@ type Action interface {
 	LeaveAction() Action
 	LeaveActionAt(timestamp time.Time) Action
 
+	EnterAction(actionName string) Action
+	EnterActionAt(actionName string, timestamp time.Time) Action
+
 	CancelAction() Action
 	CancelActionAt(timestamp time.Time) Action
 

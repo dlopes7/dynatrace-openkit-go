@@ -7,6 +7,14 @@ import (
 
 type NullAction struct{}
 
+func (a NullAction) EnterAction(actionName string) interfaces.Action {
+	return a
+}
+
+func (a NullAction) EnterActionAt(actionName string, timestamp time.Time) interfaces.Action {
+	return a
+}
+
 func (a NullAction) TraceWebRequest(url string) interfaces.WebRequestTracer {
 	return NewNullWebRequestTracer()
 }
