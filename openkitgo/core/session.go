@@ -53,11 +53,15 @@ func (s *Session) IdentifyUserAt(userTag string, timestamp time.Time) {
 }
 
 func (s *Session) ReportCrash(errorName string, reason string, stacktrace string) {
-	panic("implement me")
+	s.ReportCrashAt(errorName, reason, stacktrace, time.Now())
 }
 
 func (s *Session) ReportCrashAt(errorName string, reason string, stacktrace string, timestamp time.Time) {
-	panic("implement me")
+	s.log.WithFields(log.Fields{"session": s, "errorName": errorName, "reason": reason, "stacktrace": stacktrace, "timestamp": timestamp}).Debug("Session.ReportCrash()")
+
+	if !s.State.IsFinishingOrFinished() {
+		s.beacon.reportCrash(errorName, reason, stacktrace, timestamp)
+	}
 }
 
 func (s *Session) String() string {

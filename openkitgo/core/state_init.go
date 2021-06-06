@@ -2,6 +2,7 @@ package core
 
 import (
 	"github.com/dlopes7/dynatrace-openkit-go/openkitgo/protocol"
+	log "github.com/sirupsen/logrus"
 	"math"
 	"net/http"
 	"time"
@@ -74,6 +75,7 @@ func (s *StateInit) executeStatusRequest(ctx *BeaconSendingContext) protocol.Sta
 			sleepTime = statusResponse.GetRetryAfter()
 			ctx.disableCaptureAndClear()
 		}
+		ctx.log.WithFields(log.Fields{"sleepAmount": sleepTime}).Warning("Could not initialize openkit, sleeping")
 		time.Sleep(sleepTime)
 		s.reInitDelayIndex = int(math.Min(float64(s.reInitDelayIndex+1), float64(len(s.reInitDelayMilliseconds)-1)))
 	}

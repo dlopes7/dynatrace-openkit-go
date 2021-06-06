@@ -551,6 +551,26 @@ func (b *Beacon) enableCapture() {
 	b.configuration.EnableCapture()
 }
 
+func (b *Beacon) reportCrash(name string, reason string, stacktrace string, timestamp time.Time) {
+
+	if !b.isDataCapturingEnabled() {
+		return
+	}
+
+	var builder strings.Builder
+
+	b.buildBasicEventData(&builder, CRASH, name)
+
+	b.addKeyValuePair(&builder, BEACON_KEY_PARENT_ACTION_ID, 0)
+	b.addKeyValuePair(&builder, BEACON_KEY_START_SEQUENCE_NUMBER, b.CreateSequenceNumber())
+	b.addKeyValuePair(&builder, BEACON_KEY_TIME_0, timestamp.Sub(b.sessionStartTime).Milliseconds())
+	b.addKeyValuePairIfNotNull(&builder, BEACON_KEY_ERROR_REASON, reason)
+	b.addKeyValuePairIfNotNull(&builder, BEACON_KEY_ERROR_STACKTRACE, stacktrace)
+	b.addKeyValuePair(&builder, BEACON_KEY_ERROR_TECHNOLOGY_TYPE, protocol.ERROR_TECHNOLOGY_TYPE)
+
+	b.addEventData(timestamp, &builder)
+}
+
 func truncate(name string) string {
 	name = strings.TrimSpace(name)
 	if len(name) > MAX_NAME_LEN {

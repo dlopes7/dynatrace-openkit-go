@@ -106,7 +106,7 @@ func (h *HttpClient) SendStatusRequest(ctx *BeaconSendingContext) protocol.Statu
 	statusUrl := b.String()
 	r, err := h.sendRequest(STATUS, statusUrl, "", nil, "GET")
 	if err != nil {
-		return protocol.NewStatusResponse(h.log, protocol.UndefinedResponseAttributes(), -1, nil)
+		return protocol.NewStatusResponse(h.log, protocol.UndefinedResponseAttributes(), 999, nil)
 	}
 	return *r
 }

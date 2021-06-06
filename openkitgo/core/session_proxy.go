@@ -163,11 +163,18 @@ func (p *SessionProxy) IdentifyUserAt(userTag string, timestamp time.Time) {
 }
 
 func (p *SessionProxy) ReportCrash(errorName string, reason string, stacktrace string) {
-	panic("implement me")
+	p.ReportCrashAt(errorName, reason, stacktrace, time.Now())
 }
 
 func (p *SessionProxy) ReportCrashAt(errorName string, reason string, stacktrace string, timestamp time.Time) {
-	panic("implement me")
+	p.log.WithFields(log.Fields{"errorName": errorName, "reason": reason, "stacktrace": stacktrace, "timestamp": timestamp}).Debug("SessionProxy.ReportCrash()")
+
+	if !p.isFinished {
+		s := p.getOrSplitCurrentSessionByEvents(timestamp)
+		p.topLevelActionCount++
+		s.ReportCrashAt(errorName, reason, stacktrace, timestamp)
+		p.splitAndCreateNewInitialSession()
+	}
 }
 func (p *SessionProxy) End() {
 	p.EndAt(time.Now())
@@ -210,6 +217,7 @@ func (p *SessionProxy) getOrSplitCurrentSessionByEvents(timestamp time.Time) ope
 	if p.isSessionSplitByEventsRequired() {
 		p.closeOrEnqueueCurrentSessionForClosing()
 		p.createSplitSessionAndMakeCurrent(p.serverConfiguration, timestamp)
+		p.reTagCurrentSession()
 	}
 
 	return p.currentSession
@@ -290,6 +298,9 @@ func (p *SessionProxy) isSessionSplitByEventsRequired() bool {
 }
 
 func (p *SessionProxy) closeOrEnqueueCurrentSessionForClosing() {
+	if p.serverConfiguration == nil {
+		p.serverConfiguration = configuration.DefaultServerConfiguration()
+	}
 	closeGracePeriod := p.serverConfiguration.SessionTimeout
 	if closeGracePeriod != 0 {
 		closeGracePeriod = closeGracePeriod / 2
@@ -314,6 +325,21 @@ func (p *SessionProxy) onServerConfigurationUpdate(serverConfiguration *configur
 
 	if p.serverConfiguration.SessionSplitByIdleTimeout || p.serverConfiguration.SessionSplitBySessionDuration {
 		// TODO sessionWatchdog.addToSplitByTimeout(this);
+	}
+
+}
+
+func (p *SessionProxy) splitAndCreateNewInitialSession() {
+	p.closeOrEnqueueCurrentSessionForClosing()
+	p.sessionSequenceNumber = 0
+	p.createInitialSessionAndMakeCurrent(p.serverConfiguration, time.Now())
+	p.reTagCurrentSession()
+
+}
+
+func (p *SessionProxy) reTagCurrentSession() {
+	if p.lastUserTag != "" {
+		p.currentSession.IdentifyUser(p.lastUserTag)
 	}
 
 }
