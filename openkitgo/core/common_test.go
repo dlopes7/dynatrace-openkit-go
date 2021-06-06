@@ -22,6 +22,14 @@ func TestMain(m *testing.M) {
 	logger = log.New()
 	logger.SetLevel(log.DebugLevel)
 
+	ok := NewOpenKitBuilder(
+		"https://localhost:9999/mbeacon/e/eaa50379",
+		"98972aef-02ac-4ecb-be1e-a6698af2de60",
+		1).
+		WithApplicationName("OpenGit-Go Dev").
+		WithLogLevel(log.InfoLevel).
+		Build()
+
 	httpClientConfig := &configuration.HttpClientConfiguration{
 		BaseURL:       "https://localhost:9999/mbeacon/e/eaa50379",
 		ServerID:      1,
@@ -46,7 +54,7 @@ func TestMain(m *testing.M) {
 	beacon = NewBeacon(logger,
 		caching.NewBeaconCache(logger),
 		providers.NewSessionIDProvider(),
-		NewSessionProxy(),
+		NewSessionProxy(logger, ok.(*OpenKit), ok.(*OpenKit).beaconSender, ok.(*OpenKit), "", time.Now()),
 		c,
 		time.Now(),
 		1,

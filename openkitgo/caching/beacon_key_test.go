@@ -6,8 +6,8 @@ import (
 )
 
 func TestNewBeaconKey(t *testing.T) {
-	key := uint32(1)
-	seq := uint32(2)
+	key := int32(1)
+	seq := int32(2)
 	k := NewBeaconKey(key, seq)
 	assert.Equal(t, k.BeaconId, key)
 	assert.Equal(t, k.BeaconSeqNo, seq)
