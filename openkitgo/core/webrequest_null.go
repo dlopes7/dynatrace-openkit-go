@@ -1,13 +1,13 @@
 package core
 
 import (
-	"github.com/dlopes7/dynatrace-openkit-go/openkitgo"
+	"github.com/dlopes7/dynatrace-openkit-go/openkitgo/interfaces"
 	"time"
 )
 
 type NullWebRequestTracer struct{}
 
-func NewNullWebRequestTracer() openkitgo.WebRequestTracer {
+func NewNullWebRequestTracer() interfaces.WebRequestTracer {
 	return &NullWebRequestTracer{}
 }
 
@@ -15,19 +15,19 @@ func (n *NullWebRequestTracer) GetTag() string {
 	return ""
 }
 
-func (n *NullWebRequestTracer) SetBytesSent(bytesSent int) openkitgo.WebRequestTracer {
+func (n *NullWebRequestTracer) SetBytesSent(bytesSent int) interfaces.WebRequestTracer {
 	return n
 }
 
-func (n *NullWebRequestTracer) SetBytesReceived(bytesReceived int) openkitgo.WebRequestTracer {
+func (n *NullWebRequestTracer) SetBytesReceived(bytesReceived int) interfaces.WebRequestTracer {
 	return n
 }
 
-func (n *NullWebRequestTracer) Start() openkitgo.WebRequestTracer {
+func (n *NullWebRequestTracer) Start() interfaces.WebRequestTracer {
 	return n
 }
 
-func (n *NullWebRequestTracer) StartAt(timestamp time.Time) openkitgo.WebRequestTracer {
+func (n *NullWebRequestTracer) StartAt(timestamp time.Time) interfaces.WebRequestTracer {
 	return n
 }
 

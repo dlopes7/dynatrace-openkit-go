@@ -51,10 +51,12 @@ func TestMain(m *testing.M) {
 	c := configuration.NewBeaconConfiguration(o, p, 1)
 	c.ServerConfiguration = s
 
+	sessionWatchdog := NewSessionWatchdog(logger, NewSessionWatchdogContext())
+
 	beacon = NewBeacon(logger,
 		caching.NewBeaconCache(logger),
 		providers.NewSessionIDProvider(),
-		NewSessionProxy(logger, ok.(*OpenKit), ok.(*OpenKit).beaconSender, ok.(*OpenKit), "", time.Now()),
+		NewSessionProxy(logger, ok.(*OpenKit), ok.(*OpenKit).beaconSender, sessionWatchdog, ok.(*OpenKit), "", time.Now()),
 		c,
 		time.Now(),
 		1,

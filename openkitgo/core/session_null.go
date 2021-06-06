@@ -1,18 +1,18 @@
 package core
 
 import (
-	"github.com/dlopes7/dynatrace-openkit-go/openkitgo"
+	"github.com/dlopes7/dynatrace-openkit-go/openkitgo/interfaces"
 	"time"
 )
 
 type NullSession struct {
 }
 
-func (n NullSession) TraceWebRequest(url string) openkitgo.WebRequestTracer {
+func (n NullSession) TraceWebRequest(url string) interfaces.WebRequestTracer {
 	return NewNullWebRequestTracer()
 }
 
-func (n NullSession) TraceWebRequestAt(url string, timestamp time.Time) openkitgo.WebRequestTracer {
+func (n NullSession) TraceWebRequestAt(url string, timestamp time.Time) interfaces.WebRequestTracer {
 	return NewNullWebRequestTracer()
 }
 
@@ -40,15 +40,15 @@ func (n NullSession) getActionID() int {
 	return 0
 }
 
-func NewNullSession() openkitgo.Session {
+func NewNullSession() interfaces.Session {
 	return &NullSession{}
 }
 
-func (n NullSession) EnterAction(actionName string) openkitgo.Action {
+func (n NullSession) EnterAction(actionName string) interfaces.Action {
 	return NewNullAction()
 }
 
-func (n NullSession) EnterActionAt(actionName string, timestamp time.Time) openkitgo.Action {
+func (n NullSession) EnterActionAt(actionName string, timestamp time.Time) interfaces.Action {
 	return NewNullAction()
 }
 

@@ -2,9 +2,9 @@ package core
 
 import (
 	"fmt"
-	"github.com/dlopes7/dynatrace-openkit-go/openkitgo"
 	"github.com/dlopes7/dynatrace-openkit-go/openkitgo/caching"
 	"github.com/dlopes7/dynatrace-openkit-go/openkitgo/configuration"
+	"github.com/dlopes7/dynatrace-openkit-go/openkitgo/interfaces"
 	"github.com/dlopes7/dynatrace-openkit-go/openkitgo/providers"
 	log "github.com/sirupsen/logrus"
 	"sync"
@@ -123,11 +123,11 @@ func (p *SessionProxy) getActionID() int {
 	return DEFAULT_ACTION_ID
 }
 
-func (p *SessionProxy) EnterAction(actionName string) openkitgo.Action {
+func (p *SessionProxy) EnterAction(actionName string) interfaces.Action {
 	return p.EnterActionAt(actionName, time.Now())
 }
 
-func (p *SessionProxy) EnterActionAt(actionName string, timestamp time.Time) openkitgo.Action {
+func (p *SessionProxy) EnterActionAt(actionName string, timestamp time.Time) interfaces.Action {
 	if actionName == "" {
 		p.log.Warning("actionName must not be empty")
 		return NewNullAction()
@@ -212,7 +212,7 @@ func (p *SessionProxy) GetSessionSequenceNumber() int32 {
 	return p.sessionSequenceNumber
 }
 
-func (p *SessionProxy) getOrSplitCurrentSessionByEvents(timestamp time.Time) openkitgo.Session {
+func (p *SessionProxy) getOrSplitCurrentSessionByEvents(timestamp time.Time) interfaces.Session {
 	if p.isSessionSplitByEventsRequired() {
 		p.closeOrEnqueueCurrentSessionForClosing()
 		p.createSplitSessionAndMakeCurrent(p.serverConfiguration, timestamp)
@@ -252,7 +252,7 @@ func (p *SessionProxy) createAndAssignCurrentSession(initialServerConfig *config
 
 }
 
-func (p *SessionProxy) createSessionAt(parent OpenKitComposite, timestamp time.Time) openkitgo.Session {
+func (p *SessionProxy) createSessionAt(parent OpenKitComposite, timestamp time.Time) interfaces.Session {
 
 	config := configuration.NewBeaconConfiguration(
 		p.openKitConfiguration,
@@ -279,7 +279,7 @@ func (p *SessionProxy) createSessionAt(parent OpenKitComposite, timestamp time.T
 func (p *SessionProxy) closeChildObjects(timestamp time.Time) {
 	for _, child := range p.getCopyOfChildObjects() {
 		switch child.(type) {
-		case openkitgo.Session:
+		case interfaces.Session:
 			child.(*Session).endWithEvent(child == p.currentSession, timestamp)
 		default:
 			child.closeAt(timestamp)
@@ -343,11 +343,11 @@ func (p *SessionProxy) reTagCurrentSession() {
 
 }
 
-func (p *SessionProxy) TraceWebRequest(url string) openkitgo.WebRequestTracer {
+func (p *SessionProxy) TraceWebRequest(url string) interfaces.WebRequestTracer {
 	return p.TraceWebRequestAt(url, time.Now())
 }
 
-func (p *SessionProxy) TraceWebRequestAt(url string, timestamp time.Time) openkitgo.WebRequestTracer {
+func (p *SessionProxy) TraceWebRequestAt(url string, timestamp time.Time) interfaces.WebRequestTracer {
 	p.log.WithFields(log.Fields{"url": url, "timestamp": timestamp}).Debug("SessionProxy.TraceWebRequest()")
 
 	if !p.isFinished {

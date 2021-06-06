@@ -11,12 +11,12 @@ package main
 
 import (
 	"fmt"
-	"github.com/dlopes7/dynatrace-openkit-go/openkitgo/core"
+	"github.com/dlopes7/dynatrace-openkit-go/openkitgo"
 	"math/rand"
 )
 
 func main() {
-	openkit := core.NewOpenKitBuilder("https://tenant.app.url/mbeacon", "my-app-id", 19).
+	openkit := openkitgo.NewOpenKitBuilder("https://tenant.app.url/mbeacon", "my-app-id", 19).
 		WithApplicationName("Sample APp").
 		WithApplicationVersion("1.000").
 		WithManufacturer("Sample Inc").

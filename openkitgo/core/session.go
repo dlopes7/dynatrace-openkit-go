@@ -2,8 +2,8 @@ package core
 
 import (
 	"fmt"
-	"github.com/dlopes7/dynatrace-openkit-go/openkitgo"
 	"github.com/dlopes7/dynatrace-openkit-go/openkitgo/configuration"
+	"github.com/dlopes7/dynatrace-openkit-go/openkitgo/interfaces"
 	"github.com/dlopes7/dynatrace-openkit-go/openkitgo/protocol"
 	log "github.com/sirupsen/logrus"
 	"sync"
@@ -25,11 +25,11 @@ type Session struct {
 	splitByEventsGracePeriodEndTime time.Time
 }
 
-func (s *Session) EnterAction(actionName string) openkitgo.Action {
+func (s *Session) EnterAction(actionName string) interfaces.Action {
 	return s.EnterActionAt(actionName, time.Now())
 }
 
-func (s *Session) EnterActionAt(actionName string, timestamp time.Time) openkitgo.Action {
+func (s *Session) EnterActionAt(actionName string, timestamp time.Time) interfaces.Action {
 	s.log.WithFields(log.Fields{"actionName": actionName, "timestamp": timestamp}).Debug("Session.EnterActionAt()")
 
 	if !s.State.IsFinishingOrFinished() {
@@ -193,11 +193,11 @@ func (s *Session) isEmpty() bool {
 
 }
 
-func (s *Session) TraceWebRequest(url string) openkitgo.WebRequestTracer {
+func (s *Session) TraceWebRequest(url string) interfaces.WebRequestTracer {
 	return s.TraceWebRequestAt(url, time.Now())
 }
 
-func (s *Session) TraceWebRequestAt(url string, timestamp time.Time) openkitgo.WebRequestTracer {
+func (s *Session) TraceWebRequestAt(url string, timestamp time.Time) interfaces.WebRequestTracer {
 	s.log.WithFields(log.Fields{"session": s, "url": url, "timestamp": timestamp}).Debug("Session.TraceWebRequest()")
 	if !s.State.IsFinishingOrFinished() {
 		tracer := NewWebRequestTracer(s.log, s, url, s.beacon, timestamp)

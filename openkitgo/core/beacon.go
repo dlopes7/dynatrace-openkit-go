@@ -2,9 +2,9 @@ package core
 
 import (
 	"fmt"
-	"github.com/dlopes7/dynatrace-openkit-go/openkitgo"
 	"github.com/dlopes7/dynatrace-openkit-go/openkitgo/caching"
 	"github.com/dlopes7/dynatrace-openkit-go/openkitgo/configuration"
+	"github.com/dlopes7/dynatrace-openkit-go/openkitgo/interfaces"
 	"github.com/dlopes7/dynatrace-openkit-go/openkitgo/protocol"
 	"github.com/dlopes7/dynatrace-openkit-go/openkitgo/providers"
 	"github.com/dlopes7/dynatrace-openkit-go/openkitgo/utils"
@@ -524,7 +524,7 @@ func (b *Beacon) reportError(parentActionID int, errorName string, causeName str
 
 	b.addEventData(timestamp, &builder)
 }
-func (b *Beacon) addWebRequest(parentActionID int, tracer openkitgo.WebRequestTracer) {
+func (b *Beacon) addWebRequest(parentActionID int, tracer interfaces.WebRequestTracer) {
 
 	if !b.isErrorCapturingEnabled() {
 		return

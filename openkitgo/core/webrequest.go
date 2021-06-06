@@ -2,7 +2,7 @@ package core
 
 import (
 	"fmt"
-	"github.com/dlopes7/dynatrace-openkit-go/openkitgo"
+	"github.com/dlopes7/dynatrace-openkit-go/openkitgo/interfaces"
 	log "github.com/sirupsen/logrus"
 	"sync"
 	"time"
@@ -53,7 +53,7 @@ func (w *WebRequestTracer) GetTag() string {
 	return w.tag
 }
 
-func (w *WebRequestTracer) SetBytesSent(bytesSent int) openkitgo.WebRequestTracer {
+func (w *WebRequestTracer) SetBytesSent(bytesSent int) interfaces.WebRequestTracer {
 	w.mutex.Lock()
 	defer w.mutex.Unlock()
 	if !w.isStopped() {
@@ -62,7 +62,7 @@ func (w *WebRequestTracer) SetBytesSent(bytesSent int) openkitgo.WebRequestTrace
 	return w
 }
 
-func (w *WebRequestTracer) SetBytesReceived(bytesReceived int) openkitgo.WebRequestTracer {
+func (w *WebRequestTracer) SetBytesReceived(bytesReceived int) interfaces.WebRequestTracer {
 	w.mutex.Lock()
 	defer w.mutex.Unlock()
 	if !w.isStopped() {
@@ -71,11 +71,11 @@ func (w *WebRequestTracer) SetBytesReceived(bytesReceived int) openkitgo.WebRequ
 	return w
 }
 
-func (w *WebRequestTracer) Start() openkitgo.WebRequestTracer {
+func (w *WebRequestTracer) Start() interfaces.WebRequestTracer {
 	return w.StartAt(time.Now())
 }
 
-func (w *WebRequestTracer) StartAt(timestamp time.Time) openkitgo.WebRequestTracer {
+func (w *WebRequestTracer) StartAt(timestamp time.Time) interfaces.WebRequestTracer {
 	w.log.WithFields(log.Fields{"timestamp": timestamp}).Debug("WebRequestTracer.Start()")
 
 	w.mutex.Lock()

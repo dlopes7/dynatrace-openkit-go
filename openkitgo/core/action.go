@@ -1,7 +1,7 @@
 package core
 
 import (
-	"github.com/dlopes7/dynatrace-openkit-go/openkitgo"
+	"github.com/dlopes7/dynatrace-openkit-go/openkitgo/interfaces"
 	log "github.com/sirupsen/logrus"
 	"sync"
 	"time"
@@ -10,7 +10,7 @@ import (
 type Action struct {
 	log             *log.Logger
 	parent          OpenKitComposite
-	parentAction    openkitgo.Action
+	parentAction    interfaces.Action
 	parentActionID  int
 	mutex           sync.RWMutex
 	id              int32
@@ -63,7 +63,7 @@ func (a *Action) getActionID() int {
 	return int(a.id)
 }
 
-func NewAction(log *log.Logger, parent OpenKitComposite, parentAction openkitgo.Action, name string, beacon *Beacon, startTime time.Time) *Action {
+func NewAction(log *log.Logger, parent OpenKitComposite, parentAction interfaces.Action, name string, beacon *Beacon, startTime time.Time) *Action {
 
 	return &Action{
 		log:             log,
@@ -89,11 +89,11 @@ func (a *Action) close() {
 	a.closeAt(time.Now())
 }
 
-func (a *Action) ReportEvent(eventName string) openkitgo.Action {
+func (a *Action) ReportEvent(eventName string) interfaces.Action {
 	return a.ReportEventAt(eventName, time.Now())
 }
 
-func (a *Action) ReportEventAt(eventName string, timestamp time.Time) openkitgo.Action {
+func (a *Action) ReportEventAt(eventName string, timestamp time.Time) interfaces.Action {
 	if eventName == "" {
 		a.log.Warning("eventName must not be empty")
 		return a
@@ -108,11 +108,11 @@ func (a *Action) ReportEventAt(eventName string, timestamp time.Time) openkitgo.
 	return a
 }
 
-func (a *Action) ReportValue(valueName string, value interface{}) openkitgo.Action {
+func (a *Action) ReportValue(valueName string, value interface{}) interfaces.Action {
 	return a.ReportValueAt(valueName, value, time.Now())
 }
 
-func (a *Action) ReportValueAt(valueName string, value interface{}, timestamp time.Time) openkitgo.Action {
+func (a *Action) ReportValueAt(valueName string, value interface{}, timestamp time.Time) interfaces.Action {
 	a.log.WithFields(log.Fields{"actionName": a.name, "valueName": valueName, "value": value, "timestamp": timestamp}).Debug("ReportValue()")
 	if !a.actionLeft {
 		a.beacon.reportValue(int(a.id), valueName, value, timestamp)
@@ -120,11 +120,11 @@ func (a *Action) ReportValueAt(valueName string, value interface{}, timestamp ti
 	return a
 }
 
-func (a *Action) ReportError(errorName string, causeName string, causeDescription string, causeStack string) openkitgo.Action {
+func (a *Action) ReportError(errorName string, causeName string, causeDescription string, causeStack string) interfaces.Action {
 	return a.ReportErrorAt(errorName, causeName, causeDescription, causeStack, time.Now())
 }
 
-func (a *Action) ReportErrorAt(errorName string, causeName string, causeDescription string, causeStack string, timestamp time.Time) openkitgo.Action {
+func (a *Action) ReportErrorAt(errorName string, causeName string, causeDescription string, causeStack string, timestamp time.Time) interfaces.Action {
 	a.log.WithFields(log.Fields{"actionName": a.name, "errorName": errorName, "causeName": causeName, "timestamp": timestamp}).Debug("ReportError()")
 	if !a.actionLeft {
 		a.beacon.reportError(int(a.id), errorName, causeName, causeDescription, causeStack, timestamp)
@@ -132,28 +132,28 @@ func (a *Action) ReportErrorAt(errorName string, causeName string, causeDescript
 	return a
 }
 
-func (a *Action) LeaveAction() openkitgo.Action {
+func (a *Action) LeaveAction() interfaces.Action {
 	return a.LeaveActionAt(time.Now())
 }
 
-func (a *Action) LeaveActionAt(timestamp time.Time) openkitgo.Action {
+func (a *Action) LeaveActionAt(timestamp time.Time) interfaces.Action {
 	a.log.WithFields(log.Fields{"actionName": a.name, "timestamp": timestamp}).Debug("Action.LeaveAction()")
 
 	return a.doLeaveAction(false, timestamp)
 }
 
-func (a *Action) CancelAction() openkitgo.Action {
+func (a *Action) CancelAction() interfaces.Action {
 	return a.CancelActionAt(time.Now())
 }
 
-func (a *Action) CancelActionAt(timestamp time.Time) openkitgo.Action {
+func (a *Action) CancelActionAt(timestamp time.Time) interfaces.Action {
 	a.log.WithFields(log.Fields{"actionName": a.name}).Debug("CancelAction()")
 
 	return a.doLeaveAction(true, timestamp)
 
 }
 
-func (a *Action) doLeaveAction(discardData bool, timestamp time.Time) openkitgo.Action {
+func (a *Action) doLeaveAction(discardData bool, timestamp time.Time) interfaces.Action {
 	a.mutex.Lock()
 	defer a.mutex.Unlock()
 	if a.actionLeft {
@@ -192,11 +192,11 @@ func (a *Action) GetDuration() time.Duration {
 	return time.Now().Sub(a.startTime)
 }
 
-func (a *Action) TraceWebRequest(url string) openkitgo.WebRequestTracer {
+func (a *Action) TraceWebRequest(url string) interfaces.WebRequestTracer {
 	return a.TraceWebRequestAt(url, time.Now())
 }
 
-func (a *Action) TraceWebRequestAt(url string, timestamp time.Time) openkitgo.WebRequestTracer {
+func (a *Action) TraceWebRequestAt(url string, timestamp time.Time) interfaces.WebRequestTracer {
 	a.log.WithFields(log.Fields{"actionName": a.name, "url": url, "timestamp": timestamp}).Debug("Action.TraceWebRequest()")
 
 	if !a.actionLeft {

@@ -2,9 +2,9 @@ package core
 
 import (
 	"fmt"
-	"github.com/dlopes7/dynatrace-openkit-go/openkitgo"
 	"github.com/dlopes7/dynatrace-openkit-go/openkitgo/caching"
 	"github.com/dlopes7/dynatrace-openkit-go/openkitgo/configuration"
+	"github.com/dlopes7/dynatrace-openkit-go/openkitgo/interfaces"
 	"github.com/dlopes7/dynatrace-openkit-go/openkitgo/utils"
 	log "github.com/sirupsen/logrus"
 	"net/http"
@@ -26,12 +26,12 @@ type OpenKit struct {
 	children []OpenKitObject
 }
 
-func (o *OpenKit) CreateSessionWithDeviceID(clientIPAddress string, deviceID int64) openkitgo.Session {
+func (o *OpenKit) CreateSessionWithDeviceID(clientIPAddress string, deviceID int64) interfaces.Session {
 	return o.CreateSessionAtWithDeviceID(clientIPAddress, time.Now(), deviceID)
 
 }
 
-func (o *OpenKit) CreateSessionAtWithDeviceID(clientIPAddress string, timestamp time.Time, deviceID int64) openkitgo.Session {
+func (o *OpenKit) CreateSessionAtWithDeviceID(clientIPAddress string, timestamp time.Time, deviceID int64) interfaces.Session {
 	o.log.WithFields(log.Fields{"clientIPAddress": clientIPAddress, "timestamp": timestamp}).Debug("OpenKit.CreateSessionAt()")
 
 	o.mutex.Lock()
@@ -56,15 +56,15 @@ func (o *OpenKit) CreateSessionAtWithDeviceID(clientIPAddress string, timestamp 
 	return NewNullSession()
 }
 
-func (o *OpenKit) CreateSession(clientIPAddress string) openkitgo.Session {
+func (o *OpenKit) CreateSession(clientIPAddress string) interfaces.Session {
 	return o.CreateSessionAtWithDeviceID(clientIPAddress, time.Now(), o.openKitConfiguration.DeviceID)
 }
 
-func (o *OpenKit) CreateSessionAt(clientIPAddress string, timestamp time.Time) openkitgo.Session {
+func (o *OpenKit) CreateSessionAt(clientIPAddress string, timestamp time.Time) interfaces.Session {
 	return o.CreateSessionAtWithDeviceID(clientIPAddress, timestamp, o.openKitConfiguration.DeviceID)
 }
 
-func NewOpenKit(builder *OpenKitBuilder) openkitgo.OpenKit {
+func NewOpenKit(builder *OpenKitBuilder) interfaces.OpenKit {
 
 	privacyConfig := &configuration.PrivacyConfiguration{
 		DataCollectionLevel: builder.dataCollectionLevel,

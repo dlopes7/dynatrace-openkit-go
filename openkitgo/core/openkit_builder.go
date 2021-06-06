@@ -2,8 +2,8 @@ package core
 
 import (
 	"crypto/tls"
-	"github.com/dlopes7/dynatrace-openkit-go/openkitgo"
 	"github.com/dlopes7/dynatrace-openkit-go/openkitgo/configuration"
+	"github.com/dlopes7/dynatrace-openkit-go/openkitgo/interfaces"
 	log "github.com/sirupsen/logrus"
 	"net/http"
 	"strconv"
@@ -50,7 +50,7 @@ func (b *OpenKitBuilder) ApplicationName() string {
 	return b.applicationName
 }
 
-func NewOpenKitBuilder(endpointURL string, applicationID string, deviceID int64) openkitgo.OpenKitBuilder {
+func NewOpenKitBuilder(endpointURL string, applicationID string, deviceID int64) interfaces.OpenKitBuilder {
 
 	return &OpenKitBuilder{
 		endpointURL:                    endpointURL,
@@ -72,28 +72,28 @@ func NewOpenKitBuilder(endpointURL string, applicationID string, deviceID int64)
 
 }
 
-func (b *OpenKitBuilder) WithApplicationName(applicationName string) openkitgo.OpenKitBuilder {
+func (b *OpenKitBuilder) WithApplicationName(applicationName string) interfaces.OpenKitBuilder {
 	b.applicationName = applicationName
 	return b
 }
 
-func (b *OpenKitBuilder) WithLogLevel(level log.Level) openkitgo.OpenKitBuilder {
+func (b *OpenKitBuilder) WithLogLevel(level log.Level) interfaces.OpenKitBuilder {
 	b.logLevel = level
 	b.log.SetLevel(level)
 	return b
 }
 
-func (b *OpenKitBuilder) WithLogger(log *log.Logger) openkitgo.OpenKitBuilder {
+func (b *OpenKitBuilder) WithLogger(log *log.Logger) interfaces.OpenKitBuilder {
 	b.log = log
 	return b
 }
 
-func (b *OpenKitBuilder) WithApplicationVersion(version string) openkitgo.OpenKitBuilder {
+func (b *OpenKitBuilder) WithApplicationVersion(version string) interfaces.OpenKitBuilder {
 	b.applicationVersion = version
 	return b
 }
 
-func (b *OpenKitBuilder) WithTransport(transport *http.Transport) openkitgo.OpenKitBuilder {
+func (b *OpenKitBuilder) WithTransport(transport *http.Transport) interfaces.OpenKitBuilder {
 	if transport == nil {
 		transport = &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: true}}
 	}
@@ -101,47 +101,47 @@ func (b *OpenKitBuilder) WithTransport(transport *http.Transport) openkitgo.Open
 	return b
 }
 
-func (b *OpenKitBuilder) WithOperatingSystem(operatingSystem string) openkitgo.OpenKitBuilder {
+func (b *OpenKitBuilder) WithOperatingSystem(operatingSystem string) interfaces.OpenKitBuilder {
 	b.operatingSystem = operatingSystem
 	return b
 }
 
-func (b *OpenKitBuilder) WithManufacturer(manufacturer string) openkitgo.OpenKitBuilder {
+func (b *OpenKitBuilder) WithManufacturer(manufacturer string) interfaces.OpenKitBuilder {
 	b.manufacturer = manufacturer
 	return b
 }
 
-func (b *OpenKitBuilder) WithModelID(modelID string) openkitgo.OpenKitBuilder {
+func (b *OpenKitBuilder) WithModelID(modelID string) interfaces.OpenKitBuilder {
 	b.modelID = modelID
 	return b
 }
 
-func (b *OpenKitBuilder) WithBeaconCacheMaxRecordAge(maxRecordAge time.Duration) openkitgo.OpenKitBuilder {
+func (b *OpenKitBuilder) WithBeaconCacheMaxRecordAge(maxRecordAge time.Duration) interfaces.OpenKitBuilder {
 	b.beaconCacheMaxRecordAge = maxRecordAge
 	return b
 }
 
-func (b *OpenKitBuilder) WithBeaconCacheLowerMemoryBoundary(m int64) openkitgo.OpenKitBuilder {
+func (b *OpenKitBuilder) WithBeaconCacheLowerMemoryBoundary(m int64) interfaces.OpenKitBuilder {
 	b.beaconCacheLowerMemoryBoundary = m
 	return b
 }
 
-func (b *OpenKitBuilder) WithBeaconCacheUpperMemoryBoundary(m int64) openkitgo.OpenKitBuilder {
+func (b *OpenKitBuilder) WithBeaconCacheUpperMemoryBoundary(m int64) interfaces.OpenKitBuilder {
 	b.beaconCacheUpperMemoryBoundary = m
 	return b
 }
 
-func (b *OpenKitBuilder) WithDataCollectionLevel(l configuration.DataCollectionLevel) openkitgo.OpenKitBuilder {
+func (b *OpenKitBuilder) WithDataCollectionLevel(l configuration.DataCollectionLevel) interfaces.OpenKitBuilder {
 	b.dataCollectionLevel = l
 	return b
 }
 
-func (b *OpenKitBuilder) WithCrashReportingLevel(l configuration.CrashReportingLevel) openkitgo.OpenKitBuilder {
+func (b *OpenKitBuilder) WithCrashReportingLevel(l configuration.CrashReportingLevel) interfaces.OpenKitBuilder {
 	b.crashReportLevel = l
 	return b
 }
 
-func (b *OpenKitBuilder) Build() openkitgo.OpenKit {
+func (b *OpenKitBuilder) Build() interfaces.OpenKit {
 
 	openKit := NewOpenKit(b).(*OpenKit)
 	openKit.initialize()
