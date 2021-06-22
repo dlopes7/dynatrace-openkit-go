@@ -14,11 +14,11 @@ type ServerConfiguration struct {
 	Multiplicity                  int
 	SendInterval                  time.Duration
 	MaxSessionDuration            time.Duration
-	SessionSplitBySessionDuration bool
+	sessionSplitBySessionDuration bool
 	MaxEventsPerSession           int
-	SessionSplitByEvents          bool
+	sessionSplitByEvents          bool
 	SessionTimeout                time.Duration
-	SessionSplitByIdleTimeout     bool
+	sessionSplitByIdleTimeout     bool
 	VisitStoreVersion             int
 	TrafficControlPercentage      int
 }
@@ -33,11 +33,11 @@ func NewServerConfiguration(attributes protocol.ResponseAttributes) *ServerConfi
 		Multiplicity:                  attributes.Multiplicity,
 		SendInterval:                  attributes.SendInterval,
 		MaxSessionDuration:            attributes.MaxSessionDuration,
-		SessionSplitBySessionDuration: attributes.MaxSessionDuration != 0,
+		sessionSplitBySessionDuration: attributes.MaxSessionDuration != 0,
 		MaxEventsPerSession:           attributes.MaxEventsPerSession,
-		SessionSplitByEvents:          attributes.MaxEventsPerSession != 0,
+		sessionSplitByEvents:          attributes.MaxEventsPerSession != 0,
 		SessionTimeout:                attributes.SessionTimeout,
-		SessionSplitByIdleTimeout:     attributes.SessionTimeout != 0,
+		sessionSplitByIdleTimeout:     attributes.SessionTimeout != 0,
 		VisitStoreVersion:             attributes.VisitStoreVersion,
 		TrafficControlPercentage:      attributes.TrafficControlPercentage,
 	}
@@ -53,5 +53,19 @@ func (c *ServerConfiguration) IsSendingDataAllowed() bool {
 
 func (c *ServerConfiguration) IsSendingErrorsAllowed() bool {
 	return c.IsSendingDataAllowed() && c.ErrorReporting
+
+}
+
+func (c *ServerConfiguration) IsSessionSplitByEventsEnabled() bool {
+	return c.sessionSplitByEvents && c.MaxEventsPerSession > 0
+}
+
+func (c *ServerConfiguration) IsSessionSplitBySessionDurationEnabled() bool {
+	return c.sessionSplitBySessionDuration && c.MaxSessionDuration > 0
+
+}
+
+func (c *ServerConfiguration) IsSessionSplitByIdleTimeoutEnabled() bool {
+	return c.sessionSplitByIdleTimeout && c.SessionTimeout > 0
 
 }

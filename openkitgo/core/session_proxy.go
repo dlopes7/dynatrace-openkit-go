@@ -287,7 +287,7 @@ func (p *SessionProxy) closeChildObjects(timestamp time.Time) {
 
 func (p *SessionProxy) isSessionSplitByEventsRequired() bool {
 
-	if p.serverConfiguration == nil || !p.serverConfiguration.IsSendingDataAllowed() {
+	if p.serverConfiguration == nil || !p.serverConfiguration.IsSessionSplitByEventsEnabled() {
 		return false
 	}
 	return p.serverConfiguration.MaxEventsPerSession <= p.topLevelActionCount
@@ -320,7 +320,7 @@ func (p *SessionProxy) onServerConfigurationUpdate(serverConfiguration *configur
 		return
 	}
 
-	if p.serverConfiguration.SessionSplitByIdleTimeout || p.serverConfiguration.SessionSplitBySessionDuration {
+	if p.serverConfiguration.IsSessionSplitBySessionDurationEnabled() || p.serverConfiguration.IsSessionSplitByIdleTimeoutEnabled() {
 		p.sessionWatchdog.AddToSplitByTimeout(p)
 	}
 
@@ -378,8 +378,8 @@ func (p *SessionProxy) calculateNextSplitTime() time.Time {
 		return time.Time{}
 	}
 
-	splitByIdleTimeout := p.serverConfiguration.SessionSplitByIdleTimeout
-	splitBySessionDuration := p.serverConfiguration.SessionSplitBySessionDuration
+	splitByIdleTimeout := p.serverConfiguration.IsSessionSplitByIdleTimeoutEnabled()
+	splitBySessionDuration := p.serverConfiguration.IsSessionSplitBySessionDurationEnabled()
 
 	idleTimeOut := p.lastInteractionTime.Add(p.serverConfiguration.SessionTimeout)
 	sessionMaxTime := p.currentSession.beacon.sessionStartTime.Add(p.serverConfiguration.MaxSessionDuration)
