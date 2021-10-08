@@ -323,7 +323,7 @@ func (b *Beacon) createImmutableBasicBeaconData() string {
 	b.addKeyValuePairIfNotNull(&builder, BEACON_KEY_APPLICATION_NAME, config.ApplicationName)
 	b.addKeyValuePair(&builder, BEACON_KEY_APPLICATION_VERSION, config.ApplicationVersion)
 	b.addKeyValuePair(&builder, BEACON_KEY_PLATFORM_TYPE, protocol.PLATFORM_TYPE_OPENKIT)
-	b.addKeyValuePair(&builder, BEACON_KEY_AGENT_TECHNOLOGY_TYPE, protocol.AGENT_TECHNOLOGY_TYPE)
+	b.addKeyValuePair(&builder, BEACON_KEY_AGENT_TECHNOLOGY_TYPE, b.configuration.HttpClientConfiguration.Technology)
 
 	b.addKeyValuePair(&builder, BEACON_KEY_VISITOR_ID, b.deviceID)
 	b.addKeyValuePair(&builder, BEACON_KEY_SESSION_NUMBER, b.GetSessionNumber())

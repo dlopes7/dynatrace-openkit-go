@@ -4,6 +4,7 @@ import (
 	"crypto/tls"
 	"github.com/dlopes7/dynatrace-openkit-go/openkitgo/configuration"
 	"github.com/dlopes7/dynatrace-openkit-go/openkitgo/interfaces"
+	"github.com/dlopes7/dynatrace-openkit-go/openkitgo/protocol"
 	log "github.com/sirupsen/logrus"
 	"net/http"
 	"strconv"
@@ -14,7 +15,7 @@ const (
 	DEFAULT_SERVER_ID           = 1
 	OPENKIT_TYPE                = "DynatraceOpenKitGo"
 	WEBREQUEST_TAG_HEADER       = "X-dynaTrace"
-	DEFAULT_APPLICATION_VERSION = "1.1.5"
+	DEFAULT_APPLICATION_VERSION = "1.1.7"
 	DEFAULT_OPERATING_SYSTEM    = "OpenKit " + DEFAULT_APPLICATION_VERSION
 	DEFAULT_MANUFACTURER        = "Dynatrace"
 	DEFAULT_MODEL_ID            = "OpenKitDevice"
@@ -37,6 +38,7 @@ type OpenKitBuilder struct {
 	beaconCacheUpperMemoryBoundary int64
 	dataCollectionLevel            configuration.DataCollectionLevel
 	crashReportLevel               configuration.CrashReportingLevel
+	technology                     string
 
 	applicationID   string
 	applicationName string
@@ -68,6 +70,7 @@ func NewOpenKitBuilder(endpointURL string, applicationID string, deviceID int64)
 		beaconCacheUpperMemoryBoundary: configuration.DEFAULT_UPPER_MEMORY_BOUNDARY_IN_BYTES,
 		dataCollectionLevel:            configuration.DEFAULT_DATA_COLLECTION_LEVEL,
 		crashReportLevel:               configuration.DEFAULT_CRASH_REPORTING_LEVEL,
+		technology:                     protocol.AGENT_TECHNOLOGY_TYPE,
 	}
 
 }
@@ -138,6 +141,11 @@ func (b *OpenKitBuilder) WithDataCollectionLevel(l configuration.DataCollectionL
 
 func (b *OpenKitBuilder) WithCrashReportingLevel(l configuration.CrashReportingLevel) interfaces.OpenKitBuilder {
 	b.crashReportLevel = l
+	return b
+}
+
+func (b *OpenKitBuilder) WithTechnology(technology string) interfaces.OpenKitBuilder {
+	b.technology = technology
 	return b
 }
 

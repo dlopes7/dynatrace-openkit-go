@@ -52,8 +52,8 @@ type HttpClient struct {
 
 func NewHttpClient(log *log.Logger, config *configuration.HttpClientConfiguration) HttpClient {
 	return HttpClient{
-		monitorURL:    buildMonitorURL(config.BaseURL, config.ApplicationID, config.ServerID),
-		newSessionURL: buildNewSessionURL(config.BaseURL, config.ApplicationID, config.ServerID),
+		monitorURL:    buildMonitorURL(config.BaseURL, config.ApplicationID, config.ServerID, config.Technology),
+		newSessionURL: buildNewSessionURL(config.BaseURL, config.ApplicationID, config.ServerID, config.Technology),
 		serverID:      config.ServerID,
 		log:           log,
 		parser:        protocol.NewResponseParser(log),
@@ -62,7 +62,7 @@ func NewHttpClient(log *log.Logger, config *configuration.HttpClientConfiguratio
 	}
 }
 
-func buildMonitorURL(baseUrl string, applicationID string, serverID int) string {
+func buildMonitorURL(baseUrl string, applicationID string, serverID int, technology string) string {
 
 	var b strings.Builder
 
@@ -74,15 +74,15 @@ func buildMonitorURL(baseUrl string, applicationID string, serverID int) string 
 	appendQueryParam(&b, QUERY_KEY_APPLICATION, applicationID)
 	appendQueryParam(&b, QUERY_KEY_VERSION, protocol.OPENKIT_VERSION)
 	appendQueryParam(&b, QUERY_KEY_PLATFORM_TYPE, strconv.Itoa(protocol.PLATFORM_TYPE_OPENKIT))
-	appendQueryParam(&b, QUERY_KEY_AGENT_TECHNOLOGY_TYPE, protocol.AGENT_TECHNOLOGY_TYPE)
+	appendQueryParam(&b, QUERY_KEY_AGENT_TECHNOLOGY_TYPE, technology)
 	appendQueryParam(&b, QUERY_KEY_RESPONSE_TYPE, protocol.RESPONSE_TYPE)
 
 	return b.String()
 }
 
-func buildNewSessionURL(baseUrl string, applicationID string, serverID int) string {
+func buildNewSessionURL(baseUrl string, applicationID string, serverID int, technology string) string {
 	var b strings.Builder
-	b.WriteString(buildMonitorURL(baseUrl, applicationID, serverID))
+	b.WriteString(buildMonitorURL(baseUrl, applicationID, serverID, technology))
 	appendQueryParam(&b, QUERY_KEY_NEW_SESSION, "1")
 	return b.String()
 }

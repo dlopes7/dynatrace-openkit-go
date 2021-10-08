@@ -21,6 +21,7 @@ type OpenKitBuilder interface {
 	WithBeaconCacheUpperMemoryBoundary(m int64) OpenKitBuilder
 	WithDataCollectionLevel(l configuration.DataCollectionLevel) OpenKitBuilder
 	WithCrashReportingLevel(l configuration.CrashReportingLevel) OpenKitBuilder
+	WithTechnology(technology string) OpenKitBuilder
 	Build() OpenKit
 }
 

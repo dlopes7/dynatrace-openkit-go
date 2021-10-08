@@ -99,6 +99,7 @@ func NewOpenKit(builder *OpenKitBuilder) interfaces.OpenKit {
 		ServerID:      DEFAULT_SERVER_ID,
 		ApplicationID: builder.applicationID,
 		Transport:     builder.transport,
+		Technology:    builder.technology,
 	}
 
 	beaconSender := NewBeaconSender(builder.log, httpClientConfig)

@@ -7,4 +7,5 @@ type HttpClientConfiguration struct {
 	ServerID      int
 	ApplicationID string
 	Transport     *http.Transport
+	Technology    string
 }
