@@ -210,7 +210,7 @@ func (c *BeaconSendingContext) getAllOpenAndConfiguredSessions() []*Session {
 	var filtered []*Session
 
 	for _, session := range c.sessions {
-		if !session.State.IsConfiguredAndOpen() {
+		if session.State.IsConfiguredAndOpen() {
 			filtered = append(filtered, session)
 		}
 	}
