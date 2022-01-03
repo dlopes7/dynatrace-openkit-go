@@ -96,6 +96,8 @@ func appendQueryParam(b *strings.Builder, key string, value string) {
 
 func (h *HttpClient) SendStatusRequest(ctx *BeaconSendingContext) protocol.StatusResponse {
 
+	h.log.WithFields(log.Fields{"state": ctx.currentState}).Debug("HttpClient.SendStatusRequest")
+
 	var b strings.Builder
 	b.WriteString(h.monitorURL)
 	h.appendAdditionalQueryParameters(&b, ctx)
@@ -109,6 +111,8 @@ func (h *HttpClient) SendStatusRequest(ctx *BeaconSendingContext) protocol.Statu
 }
 
 func (h *HttpClient) SendNewSessionRequest(ctx *BeaconSendingContext) protocol.StatusResponse {
+
+	h.log.WithFields(log.Fields{"state": ctx.currentState}).Debug("HttpClient.SendNewSessionRequest")
 
 	var b strings.Builder
 	b.WriteString(h.newSessionURL)
