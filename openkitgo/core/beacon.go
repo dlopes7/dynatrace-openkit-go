@@ -10,6 +10,7 @@ import (
 	"github.com/dlopes7/dynatrace-openkit-go/openkitgo/utils"
 	log "github.com/sirupsen/logrus"
 	"math/rand"
+	"net/url"
 	"strings"
 	"sync/atomic"
 	"time"
@@ -274,7 +275,8 @@ func (b *Beacon) buildBasicEventDataWithoutName(builder *strings.Builder, eventT
 
 func (b *Beacon) addKeyValuePair(builder *strings.Builder, key string, value interface{}) {
 	b.appendKey(builder, key)
-	builder.WriteString(fmt.Sprintf("%v", value))
+	encodedValue := url.QueryEscape(fmt.Sprintf("%v", value))
+	builder.WriteString(encodedValue)
 }
 
 func (b *Beacon) appendKey(builder *strings.Builder, key string) {
